@@ -78,9 +78,9 @@ const Footer = () => (
             whileHover={{ scale: 1.05 }} className="flex items-center gap-1.5 hover:text-white transition-colors">
             <Github className="w-3.5 h-3.5" /> GitHub
           </motion.a>
-          <motion.a href="https://mianhassam96.github.io/MianConvert/" target="_blank" rel="noreferrer"
+          <motion.a href="https://multimian.com/" target="_blank" rel="noreferrer"
             whileHover={{ scale: 1.05 }} className="flex items-center gap-1.5 hover:text-white transition-colors">
-            <Globe className="w-3.5 h-3.5" /> Live Site
+            <Globe className="w-3.5 h-3.5" /> multimian.com
           </motion.a>
         </div>
       </div>

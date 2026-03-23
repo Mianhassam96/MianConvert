@@ -8,24 +8,6 @@
     <meta name="author" content="MianConvert" />
     <meta property="og:title" content="MianConvert" />
     <meta property="og:description" content="Free browser-based video converter" />
-    <script>
-      // Handle SPA redirect from 404.html
-      (function() {
-        var p = window.location.search.match(/[?&]p=([^&]*)/);
-        if (p) {
-          window.history.replaceState(null, null, decodeURIComponent(p[1]) || '/');
-        }
-      })();
-      // COI service worker for FFmpeg SharedArrayBuffer
-      if (!crossOriginIsolated && 'serviceWorker' in navigator) {
-        navigator.serviceWorker.register('./sw-coi.js').then(function() {
-          if (!sessionStorage.getItem('coi-reloaded')) {
-            sessionStorage.setItem('coi-reloaded', '1');
-            location.reload();
-          }
-        });
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>

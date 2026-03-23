@@ -13,7 +13,6 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { detectDevice, recommendedFormat, recommendedResolution } from "@/lib/device";
 import { FileVideo, RefreshCw, X, Plus, Scissors, Cpu } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 type OutputFormat = "mp4" | "webm" | "mp3" | "muted";
 type Resolution = "4k" | "1080p" | "720p" | "480p" | "original";
@@ -44,7 +43,6 @@ const FORMAT_OPTIONS: { value: OutputFormat; label: string }[] = [
 ];
 
 const VideoConverter = () => {
-  const [files, setFiles] = useState<File[]>([]);
   const [activeFile, setActiveFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [duration, setDuration] = useState(0);
@@ -74,7 +72,6 @@ const VideoConverter = () => {
     if (batchMode) {
       const id = crypto.randomUUID();
       setBatchFiles((prev) => [...prev, { id, file: f, status: "pending", progress: 0 }]);
-      setFiles((prev) => [...prev, f]);
       return;
     }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
@@ -129,7 +126,8 @@ const VideoConverter = () => {
     const inputName = `input_${Date.now()}.${file.name.split(".").pop()}`;
     const outputName = `output_${Date.now()}.${ext}`;
 
-    ff.on("progress", ({ progress: p }) => onProgress(Math.round(p * 100)));
+    const progressHandler = ({ progress: p }: { progress: number }) => onProgress(Math.round(p * 100));
+    ff.on("progress", progressHandler);
 
     await ff.writeFile(inputName, await fetchFile(file));
     const args = buildFFmpegArgs(inputName, outputName, fmt, res, q, trim, ts, te);
@@ -138,7 +136,7 @@ const VideoConverter = () => {
     const data = await ff.readFile(outputName);
     await ff.deleteFile(inputName);
     await ff.deleteFile(outputName);
-    ff.off("progress", () => {});
+    ff.off("progress", progressHandler);
 
     const mimeMap: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg" };
     const buffer = data instanceof Uint8Array ? data.buffer.slice(0) as ArrayBuffer : (data as unknown as ArrayBuffer);

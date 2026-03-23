@@ -1,8 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Slider } from "@/components/ui/slider";
-import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
@@ -11,12 +9,19 @@ import DropZone from "@/components/DropZone";
 import DownloadCard from "@/components/DownloadCard";
 import { X, RefreshCw } from "lucide-react";
 
-const PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
+const OPTIONS = [
+  { value: "transpose=1",                   label: "↻ 90° Clockwise",        icon: "↻" },
+  { value: "transpose=2",                   label: "↺ 90° Counter-clockwise", icon: "↺" },
+  { value: "transpose=1,transpose=1",       label: "↕ 180°",                  icon: "↕" },
+  { value: "hflip",                         label: "⇔ Flip Horizontal",       icon: "⇔" },
+  { value: "vflip",                         label: "⇕ Flip Vertical",         icon: "⇕" },
+  { value: "hflip,vflip",                   label: "⊕ Flip Both",             icon: "⊕" },
+];
 
-const SpeedTool = () => {
+const RotateTool = () => {
   const [video, setVideo] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [speed, setSpeed] = useState(1);
+  const [selected, setSelected] = useState(OPTIONS[0].value);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
@@ -31,12 +36,11 @@ const SpeedTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null); setSpeed(1);
+    setVideo(null); setPreviewUrl(""); setResult(null);
   };
 
   const handleProcess = async () => {
     if (!video) return;
-    if (speed === 1) { toast({ variant: "destructive", title: "Speed is already 1x" }); return; }
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null);
     const ff = ffmpeg.current!;
@@ -45,25 +49,13 @@ const SpeedTool = () => {
     try {
       const vExt = video.name.split(".").pop();
       await ff.writeFile(`input.${vExt}`, await fetchFile(video));
-      // atempo only supports 0.5–2.0, chain for extreme values
-      const videoFilter = `setpts=${(1 / speed).toFixed(4)}*PTS`;
-      let audioFilter = "";
-      if (speed <= 0.5) audioFilter = `atempo=0.5,atempo=${(speed / 0.5).toFixed(4)}`;
-      else if (speed >= 2) audioFilter = `atempo=2.0,atempo=${(speed / 2).toFixed(4)}`;
-      else audioFilter = `atempo=${speed.toFixed(4)}`;
-      await ff.exec([
-        "-i", `input.${vExt}`,
-        "-filter_complex", `[0:v]${videoFilter}[v];[0:a]${audioFilter}[a]`,
-        "-map", "[v]", "-map", "[a]",
-        "-preset", "fast",
-        "speed.mp4"
-      ]);
+      await ff.exec(["-i", `input.${vExt}`, "-vf", selected, "-c:a", "copy", "-preset", "fast", "rotated.mp4"]);
       await ff.deleteFile(`input.${vExt}`);
-      const blob = await readOutputBlob(ff, "speed.mp4", "video/mp4");
+      const blob = await readOutputBlob(ff, "rotated.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
-      setResult({ url, filename: `${base}-${speed}x.mp4`, size: formatBytes(blob.size) });
-      toast({ title: "Done!", description: `Speed set to ${speed}x.` });
+      setResult({ url, filename: `${base}-rotated.mp4`, size: formatBytes(blob.size) });
+      toast({ title: "Done!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Failed", description: String(e) });
     } finally {
@@ -76,40 +68,31 @@ const SpeedTool = () => {
       {!video ? <DropZone onFile={handleVideo} /> : (
         <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
           <video src={previewUrl} controls className="w-full max-h-52 object-contain" />
-          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"><X className="w-4 h-4" /></button>
+          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
       {video && (
         <>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
-            <div className="flex items-center justify-between">
-              <Label className="text-sm font-medium">Playback Speed</Label>
-              <span className="text-2xl font-bold text-violet-600">{speed}x</span>
-            </div>
-            <Slider min={0.25} max={4} step={0.25} value={[speed]} onValueChange={([v]) => setSpeed(v)} />
-            <div className="flex flex-wrap gap-2">
-              {PRESETS.map(p => (
-                <button key={p} onClick={() => setSpeed(p)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${speed === p ? "bg-violet-600 text-white" : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-violet-100"}`}>
-                  {p}x
-                </button>
-              ))}
-            </div>
-            <p className="text-xs text-gray-400">
-              {speed < 1 ? "🐢 Slow motion" : speed > 1 ? "⚡ Fast forward" : "▶ Normal speed"}
-            </p>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {OPTIONS.map(o => (
+              <button key={o.value} onClick={() => setSelected(o.value)}
+                className={`rounded-xl border-2 p-3 text-sm font-medium transition-all text-center ${selected === o.value ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300" : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-violet-300"}`}>
+                <div className="text-xl mb-1">{o.icon}</div>
+                <div className="text-xs">{o.label.replace(/^. /, "")}</div>
+              </button>
+            ))}
           </div>
 
           {!result && (
-            <Button onClick={handleProcess} disabled={processing || speed === 1} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11">
-              {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Processing…</> : `Apply ${speed}x Speed`}
+            <Button onClick={handleProcess} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11">
+              {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Processing…</> : "Apply Transform"}
             </Button>
           )}
           {processing && <div className="space-y-1"><Progress value={progress} className="h-2" /><p className="text-xs text-right text-gray-500">{progress}%</p></div>}
           {result && (
             <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
-              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ Speed adjusted to {speed}x!</p>
+              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ Done!</p>
               <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
               <div className="grid grid-cols-2 gap-2">
                 <Button variant="outline" onClick={() => { if(result) URL.revokeObjectURL(result.url); setResult(null); }} className="w-full gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
@@ -123,4 +106,4 @@ const SpeedTool = () => {
   );
 };
 
-export default SpeedTool;
+export default RotateTool;

@@ -121,11 +121,14 @@ const GifTool = () => {
           )}
           {processing && <div className="space-y-1"><Progress value={progress} className="h-2" /><p className="text-xs text-right text-gray-500">{progress}%</p></div>}
           {result && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-green-600">✓ GIF ready!</p>
+            <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
+              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ GIF ready!</p>
               <img src={result.url} alt="GIF preview" className="w-full rounded-xl border border-gray-200 dark:border-gray-700" />
               <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
-              <Button variant="outline" onClick={reset} className="w-full">Start over</Button>
+              <div className="grid grid-cols-2 gap-2">
+                <Button variant="outline" onClick={() => { if(result) URL.revokeObjectURL(result.url); setResult(null); }} className="w-full gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
+                <Button variant="ghost" onClick={reset} className="w-full text-sm">New file</Button>
+              </div>
             </div>
           )}
         </>

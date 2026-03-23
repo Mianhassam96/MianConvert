@@ -1,6 +1,4 @@
 import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +6,10 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { readOutputBlob } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
-import { X, RefreshCw, Download, Camera } from "lucide-react";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { X, Download, Camera } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface Frame { url: string; name: string; }
 
@@ -22,31 +23,31 @@ const FramesTool = () => {
   const [frames, setFrames] = useState<Frame[]>([]);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
   const handleVideo = (f: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setFrames([]);
+    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setFrames([]); setDone(false);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     frames.forEach(f => URL.revokeObjectURL(f.url));
-    setVideo(null); setPreviewUrl(""); setFrames([]);
+    setVideo(null); setPreviewUrl(""); setFrames([]); setDone(false);
   };
 
   const handleExtract = async () => {
     if (!video) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(10); setFrames([]);
+    setProcessing(true); setProgress(10); setFrames([]); setDone(false);
     const ff = ffmpeg.current!;
     try {
       const vExt = video.name.split(".").pop();
       await ff.writeFile(`input.${vExt}`, await fetchFile(video));
       const extracted: Frame[] = [];
-
       if (mode === "single") {
         const t = parseFloat(timestamp) || 0;
         await ff.exec(["-i", `input.${vExt}`, "-ss", t.toFixed(2), "-vframes", "1", "-q:v", "2", "frame.jpg"]);
@@ -54,7 +55,6 @@ const FramesTool = () => {
         const blob = await readOutputBlob(ff, "frame.jpg", "image/jpeg");
         extracted.push({ url: URL.createObjectURL(blob), name: `frame-${t.toFixed(2)}s.jpg` });
       } else {
-        // Burst: extract 1 frame per N seconds
         const rate = parseFloat(fps) || 1;
         await ff.exec(["-i", `input.${vExt}`, "-vf", `fps=1/${rate}`, "-q:v", "2", "frame%03d.jpg"]);
         setProgress(70);
@@ -68,10 +68,10 @@ const FramesTool = () => {
           } catch { break; }
         }
       }
-
       await ff.deleteFile(`input.${vExt}`);
       setFrames(extracted);
       setProgress(100);
+      setDone(true);
       toast({ title: `${extracted.length} frame(s) extracted!` });
     } catch (e) {
       toast({ variant: "destructive", title: "Failed", description: String(e) });
@@ -90,7 +90,7 @@ const FramesTool = () => {
         <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
           <video ref={videoRef} src={previewUrl} controls className="w-full max-h-52 object-contain"
             onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} />
-          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"><X className="w-4 h-4" /></button>
+          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
@@ -105,7 +105,6 @@ const FramesTool = () => {
                 </button>
               ))}
             </div>
-
             {mode === "single" ? (
               <div className="space-y-1">
                 <Label className="text-xs text-gray-500">Timestamp (seconds, max {duration.toFixed(0)}s)</Label>
@@ -119,17 +118,21 @@ const FramesTool = () => {
             )}
           </div>
 
-          <Button onClick={handleExtract} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11">
-            {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Extracting…</> : <><Camera className="w-4 h-4 mr-2" />Extract Frames</>}
-          </Button>
-          {processing && <div className="space-y-1"><Progress value={progress} className="h-2" /><p className="text-xs text-right text-gray-500">{progress}%</p></div>}
+          <AnimatedButton onClick={handleExtract} loading={processing} className="w-full" size="lg">
+            <Camera className="w-4 h-4" />
+            {processing ? "Extracting…" : "Extract Frames"}
+          </AnimatedButton>
+
+          {processing && <AnimatedProgress value={progress} label="Extracting frames…" done={done} />}
 
           {frames.length > 0 && (
-            <div className="space-y-3">
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-3">
               <div className="flex items-center justify-between">
                 <p className="text-sm font-semibold text-green-600">✓ {frames.length} frame(s) extracted</p>
                 {frames.length > 1 && (
-                  <Button size="sm" variant="outline" onClick={downloadAll}><Download className="w-3.5 h-3.5 mr-1" />Download All</Button>
+                  <AnimatedButton size="sm" variant="outline" onClick={downloadAll}>
+                    <Download className="w-3.5 h-3.5" /> Download All
+                  </AnimatedButton>
                 )}
               </div>
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
@@ -143,7 +146,7 @@ const FramesTool = () => {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
           )}
         </>
       )}

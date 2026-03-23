@@ -1,8 +1,8 @@
+import { motion } from "framer-motion";
 import { Zap, Github, Globe, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const TOOLS = ["Convert", "Merge", "Watermark", "Subtitles", "Speed", "Frames", "GIF"];
-const FEATURES = ["No file uploads", "100% browser-based", "FFmpeg powered", "Free forever", "Privacy first"];
+const TOOLS = ["Convert", "Clip", "Filters", "Text", "Merge", "Watermark", "Subtitles", "Speed", "Rotate", "Frames", "GIF"];
 
 const Footer = () => (
   <footer className="bg-gray-950 text-gray-400 mt-auto">
@@ -11,9 +11,9 @@ const Footer = () => (
         {/* Brand */}
         <div className="space-y-3">
           <div className="flex items-center gap-2">
-            <div className="bg-violet-600 rounded-lg p-1.5">
+            <motion.div whileHover={{ rotate: 15, scale: 1.1 }} className="bg-violet-600 rounded-lg p-1.5 cursor-default">
               <Zap className="w-4 h-4 text-white fill-white" />
-            </div>
+            </motion.div>
             <span className="text-lg font-bold text-white">MianConvert</span>
           </div>
           <p className="text-sm leading-relaxed">
@@ -21,9 +21,12 @@ const Footer = () => (
           </p>
           <div className="flex items-center gap-1 text-xs text-violet-400">
             <span>Built with</span>
-            <Heart className="w-3 h-3 fill-violet-400" />
+            <motion.span animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}>
+              <Heart className="w-3 h-3 fill-violet-400" />
+            </motion.span>
             <span>by</span>
-            <a href="https://github.com/Mianhassam96" target="_blank" rel="noreferrer" className="text-violet-300 hover:text-white transition-colors font-semibold">
+            <a href="https://github.com/Mianhassam96" target="_blank" rel="noreferrer"
+              className="text-violet-300 hover:text-white transition-colors font-semibold">
               MultiMian
             </a>
           </div>
@@ -32,9 +35,9 @@ const Footer = () => (
         {/* Tools */}
         <div className="space-y-3">
           <p className="text-white font-semibold text-sm uppercase tracking-wider">Tools</p>
-          <ul className="space-y-1.5">
-            {TOOLS.map((t) => (
-              <li key={t} className="text-sm hover:text-violet-300 transition-colors cursor-default">{t}</li>
+          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+            {TOOLS.map(t => (
+              <motion.li key={t} whileHover={{ x: 3 }} className="text-sm hover:text-violet-300 transition-colors cursor-default">{t}</motion.li>
             ))}
           </ul>
         </div>
@@ -43,9 +46,11 @@ const Footer = () => (
         <div className="space-y-3">
           <p className="text-white font-semibold text-sm uppercase tracking-wider">Pages</p>
           <ul className="space-y-1.5">
-            <li><Link to="/" className="text-sm hover:text-violet-300 transition-colors">Home</Link></li>
-            <li><Link to="/about" className="text-sm hover:text-violet-300 transition-colors">About</Link></li>
-            <li><Link to="/contact" className="text-sm hover:text-violet-300 transition-colors">Contact</Link></li>
+            {[{ to: "/", label: "Home" }, { to: "/about", label: "About" }, { to: "/contact", label: "Contact" }].map(p => (
+              <motion.li key={p.to} whileHover={{ x: 3 }}>
+                <Link to={p.to} className="text-sm hover:text-violet-300 transition-colors">{p.label}</Link>
+              </motion.li>
+            ))}
           </ul>
         </div>
       </div>
@@ -53,12 +58,14 @@ const Footer = () => (
       <div className="border-t border-gray-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs">
         <p>© {new Date().getFullYear()} MianConvert by <span className="text-violet-400 font-semibold">MultiMian</span>. All rights reserved.</p>
         <div className="flex items-center gap-4">
-          <a href="https://github.com/Mianhassam96/MianConvert" target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
+          <motion.a href="https://github.com/Mianhassam96/MianConvert" target="_blank" rel="noreferrer"
+            whileHover={{ scale: 1.05 }} className="flex items-center gap-1 hover:text-white transition-colors">
             <Github className="w-3.5 h-3.5" /> GitHub
-          </a>
-          <a href="https://mianhassam96.github.io/MianConvert/" target="_blank" rel="noreferrer" className="flex items-center gap-1 hover:text-white transition-colors">
+          </motion.a>
+          <motion.a href="https://mianhassam96.github.io/MianConvert/" target="_blank" rel="noreferrer"
+            whileHover={{ scale: 1.05 }} className="flex items-center gap-1 hover:text-white transition-colors">
             <Globe className="w-3.5 h-3.5" /> Live Site
-          </a>
+          </motion.a>
         </div>
       </div>
     </div>

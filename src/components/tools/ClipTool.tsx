@@ -1,6 +1,4 @@
 import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -8,9 +6,11 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
-import DownloadCard from "@/components/DownloadCard";
 import TrimControl from "@/components/TrimControl";
-import { X, RefreshCw, Scissors } from "lucide-react";
+import ResultCard from "@/components/ResultCard";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { X, Scissors } from "lucide-react";
 
 const PRESETS = [{ label: "15s", s: 15 }, { label: "30s", s: 30 }, { label: "60s", s: 60 }, { label: "90s", s: 90 }];
 
@@ -24,6 +24,7 @@ const ClipTool = () => {
   const [loopCount, setLoopCount] = useState(2);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -31,35 +32,29 @@ const ClipTool = () => {
 
   const handleVideo = (f: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null);
+    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false);
   };
 
-  const applyPreset = (s: number) => {
-    setStart(0);
-    setEnd(Math.min(s, duration));
-  };
+  const applyPreset = (s: number) => { setStart(0); setEnd(Math.min(s, duration)); };
 
   const handleProcess = async () => {
     if (!video) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
     try {
       const vExt = video.name.split(".").pop();
       await ff.writeFile(`input.${vExt}`, await fetchFile(video));
-
       if (loop) {
-        // Trim first, then loop using concat
         await ff.exec(["-i", `input.${vExt}`, "-ss", start.toFixed(2), "-to", end.toFixed(2), "-c", "copy", "clip.mp4"]);
-        // Build concat list
         const lines = Array(loopCount).fill("file 'clip.mp4'").join("\n");
         await ff.writeFile("loop.txt", new TextEncoder().encode(lines));
         await ff.exec(["-f", "concat", "-safe", "0", "-i", "loop.txt", "-c", "copy", "output.mp4"]);
@@ -68,11 +63,11 @@ const ClipTool = () => {
       } else {
         await ff.exec(["-i", `input.${vExt}`, "-ss", start.toFixed(2), "-to", end.toFixed(2), "-c:v", "libx264", "-c:a", "aac", "-preset", "fast", "output.mp4"]);
       }
-
       await ff.deleteFile(`input.${vExt}`);
       const blob = await readOutputBlob(ff, "output.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      setDone(true);
       setResult({ url, filename: `${base}-clip.mp4`, size: formatBytes(blob.size) });
       toast({ title: "Clip ready!" });
     } catch (e) {
@@ -92,9 +87,8 @@ const ClipTool = () => {
         </div>
       )}
 
-      {video && duration > 0 && (
+      {video && duration > 0 && !result && (
         <>
-          {/* Presets */}
           <div className="space-y-2">
             <Label className="text-xs text-gray-500">Quick clip length</Label>
             <div className="flex gap-2 flex-wrap">
@@ -111,13 +105,11 @@ const ClipTool = () => {
             </div>
           </div>
 
-          {/* Trim sliders */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
             <p className="text-xs font-medium text-gray-600 dark:text-gray-300 flex items-center gap-1.5"><Scissors className="w-3.5 h-3.5" /> Trim range</p>
             <TrimControl duration={duration} start={start} end={end} onChange={(s, e) => { setStart(s); setEnd(e); }} />
           </div>
 
-          {/* Loop */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Switch id="loop" checked={loop} onCheckedChange={setLoop} />
@@ -138,23 +130,18 @@ const ClipTool = () => {
             )}
           </div>
 
-          {!result && (
-            <Button onClick={handleProcess} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11 font-semibold">
-              {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Creating clip…</> : `Create Clip (${(end - start).toFixed(1)}s${loop ? ` × ${loopCount}` : ""})`}
-            </Button>
-          )}
-          {processing && <div className="space-y-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"><div className="flex justify-between text-xs text-gray-500 mb-1"><span>Processing…</span><span className="font-mono text-violet-600">{progress}%</span></div><Progress value={progress} className="h-2" /></div>}
-          {result && (
-            <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
-              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ Clip ready! {result.size}</p>
-              <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => { if (result) URL.revokeObjectURL(result.url); setResult(null); }} className="gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
-                <Button variant="ghost" onClick={reset} className="text-sm">New file</Button>
-              </div>
-            </div>
-          )}
+          <AnimatedButton onClick={handleProcess} loading={processing} className="w-full" size="lg">
+            {processing ? "Creating clip…" : `Create Clip (${(end - start).toFixed(1)}s${loop ? ` × ${loopCount}` : ""})`}
+          </AnimatedButton>
+
+          {processing && <AnimatedProgress value={progress} label="Processing…" done={done} />}
         </>
+      )}
+
+      {result && (
+        <ResultCard url={result.url} filename={result.filename} size={result.size}
+          onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setDone(false); }}
+          onReset={reset} />
       )}
     </div>
   );

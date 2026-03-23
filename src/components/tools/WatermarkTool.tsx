@@ -1,6 +1,4 @@
-import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
+import { useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -9,8 +7,10 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
-import DownloadCard from "@/components/DownloadCard";
-import { X, RefreshCw, ImagePlus } from "lucide-react";
+import ResultCard from "@/components/ResultCard";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { X, ImagePlus } from "lucide-react";
 
 type Position = "topleft" | "topright" | "bottomleft" | "bottomright" | "center";
 
@@ -32,13 +32,14 @@ const WatermarkTool = () => {
   const [scale, setScale] = useState("15");
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
   const handleVideo = (f: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null);
+    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
   };
 
   const handleLogo = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -49,13 +50,13 @@ const WatermarkTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null); setLogo(null); setLogoPreview("");
+    setVideo(null); setPreviewUrl(""); setResult(null); setLogo(null); setLogoPreview(""); setDone(false);
   };
 
   const handleProcess = async () => {
     if (!video || !logo) { toast({ variant: "destructive", title: "Add both a video and a logo image" }); return; }
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
@@ -66,19 +67,13 @@ const WatermarkTool = () => {
       await ff.writeFile(`logo.${lExt}`, await fetchFile(logo));
       const scaleFilter = `[1:v]scale=iw*${parseInt(scale)/100}:-1,format=rgba,colorchannelmixer=aa=${opacity}[wm]`;
       const overlayFilter = `[0:v][wm]overlay=${POS_FILTER[position]}`;
-      await ff.exec([
-        "-i", `input.${vExt}`,
-        "-i", `logo.${lExt}`,
-        "-filter_complex", `${scaleFilter};${overlayFilter}`,
-        "-c:a", "copy",
-        "-preset", "fast",
-        "watermarked.mp4"
-      ]);
+      await ff.exec(["-i", `input.${vExt}`, "-i", `logo.${lExt}`, "-filter_complex", `${scaleFilter};${overlayFilter}`, "-c:a", "copy", "-preset", "fast", "watermarked.mp4"]);
       await ff.deleteFile(`input.${vExt}`);
       await ff.deleteFile(`logo.${lExt}`);
       const blob = await readOutputBlob(ff, "watermarked.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      setDone(true);
       setResult({ url, filename: `${base}-watermarked.mp4`, size: formatBytes(blob.size) });
       toast({ title: "Done!", description: "Watermark applied." });
     } catch (e) {
@@ -93,13 +88,12 @@ const WatermarkTool = () => {
       {!video ? <DropZone onFile={handleVideo} /> : (
         <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
           <video src={previewUrl} controls className="w-full max-h-52 object-contain" />
-          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"><X className="w-4 h-4" /></button>
+          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
-      {video && (
+      {video && !result && (
         <>
-          {/* Logo upload */}
           <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
             <Label className="text-sm font-medium">Watermark / Logo Image</Label>
             <div className="flex items-center gap-4">
@@ -135,23 +129,18 @@ const WatermarkTool = () => {
             </div>
           </div>
 
-          {!result && (
-            <Button onClick={handleProcess} disabled={processing || !logo} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11">
-              {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Processing…</> : "Apply Watermark"}
-            </Button>
-          )}
-          {processing && <div className="space-y-1"><Progress value={progress} className="h-2" /><p className="text-xs text-right text-gray-500">{progress}%</p></div>}
-          {result && (
-            <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
-              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ Watermark applied!</p>
-              <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => { if(result) URL.revokeObjectURL(result.url); setResult(null); }} className="w-full gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
-                <Button variant="ghost" onClick={reset} className="w-full text-sm">New file</Button>
-              </div>
-            </div>
-          )}
+          <AnimatedButton onClick={handleProcess} loading={processing} disabled={!logo} className="w-full" size="lg">
+            {processing ? "Processing…" : "Apply Watermark"}
+          </AnimatedButton>
+
+          {processing && <AnimatedProgress value={progress} label="Applying watermark…" done={done} />}
         </>
+      )}
+
+      {result && (
+        <ResultCard url={result.url} filename={result.filename} size={result.size}
+          onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setDone(false); }}
+          onReset={reset} />
       )}
     </div>
   );

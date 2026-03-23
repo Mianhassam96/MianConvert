@@ -1,6 +1,4 @@
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -10,9 +8,11 @@ import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
 import { detectDevice, recommendedFormat, recommendedResolution } from "@/lib/device";
 import DropZone from "@/components/DropZone";
-import DownloadCard from "@/components/DownloadCard";
 import TrimControl from "@/components/TrimControl";
-import { FileVideo, RefreshCw, X, Scissors, RotateCcw, FlipHorizontal, Download } from "lucide-react";
+import ResultCard from "@/components/ResultCard";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { FileVideo, X, Scissors, RotateCcw, FlipHorizontal } from "lucide-react";
 
 type Fmt = "mp4" | "webm" | "mp3" | "wav" | "avi" | "mov" | "mkv" | "muted";
 type Res = "1080p" | "720p" | "480p" | "original";
@@ -61,7 +61,8 @@ const ConvertTool = () => {
   const [rotate, setRotate] = useState<Rotate>("none");
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{ url: string; filename: string; size: string; mime: string } | null>(null);
+  const [done, setDone] = useState(false);
+  const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
@@ -75,19 +76,19 @@ const ConvertTool = () => {
   const handleFile = (f: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(f); setPreviewUrl(URL.createObjectURL(f));
-    setResult(null); setProgress(0); setTrimEnabled(false);
+    setResult(null); setProgress(0); setTrimEnabled(false); setDone(false);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setFile(null); setPreviewUrl(""); setResult(null); setProgress(0); setRotate("none");
+    setFile(null); setPreviewUrl(""); setResult(null); setProgress(0); setRotate("none"); setDone(false);
   };
 
   const handleConvert = async () => {
     if (!file) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…", description: "First run takes ~5s." }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
 
     const extMap: Record<Fmt, string> = { mp4:"mp4", webm:"webm", mp3:"mp3", wav:"wav", avi:"avi", mov:"mov", mkv:"mkv", muted:"mp4" };
@@ -101,56 +102,37 @@ const ConvertTool = () => {
     try {
       await ff.writeFile(inp, await fetchFile(file));
       const args = ["-i", inp];
-
       if (trimEnabled) args.push("-ss", trimStart.toFixed(2), "-to", trimEnd.toFixed(2));
-
       if (isAudio(fmt)) {
         args.push("-vn");
         if (fmt === "mp3") args.push("-acodec", "libmp3lame", "-q:a", "2");
-        else args.push("-acodec", "pcm_s16le"); // WAV
+        else args.push("-acodec", "pcm_s16le");
       } else {
         if (fmt === "muted") args.push("-an");
-
-        // Build video filters
         const vFilters: string[] = [];
         if (res !== "original") vFilters.push(`scale=${RES[res]}:force_original_aspect_ratio=decrease`);
         const rotFilter = getRotateFilter(rotate);
         if (rotFilter) vFilters.push(rotFilter);
         if (vFilters.length) args.push("-vf", vFilters.join(","));
-
         args.push("-crf", CRF[quality], "-preset", "fast");
-
         if (fmt === "webm") args.push("-c:v", "libvpx-vp9", "-c:a", "libopus");
         else if (fmt === "avi") args.push("-c:v", "libxvid", "-c:a", "mp3");
         else args.push("-c:v", "libx264", "-c:a", fmt === "muted" ? "copy" : "aac");
       }
-
       args.push(out);
       await ff.exec(args);
       await ff.deleteFile(inp);
-
       const blob = await readOutputBlob(ff, out, mimeMap[ext] || "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");
-      setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size), mime: mimeMap[ext] });
-      toast({ title: "✓ Done!", description: "Your file is ready." });
+      setDone(true);
+      setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size) });
+      toast({ title: "✓ Done!" });
     } catch (e) {
       toast({ variant: "destructive", title: "Conversion failed", description: String(e) });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
-  };
-
-  const convertAgain = () => {
-    if (result) URL.revokeObjectURL(result.url);
-    setResult(null); setProgress(0);
-  };
-
-  const copyLink = () => {
-    if (!result) return;
-    navigator.clipboard.writeText(result.url).then(() =>
-      toast({ title: "Link copied!", description: "Paste it anywhere to share (same browser session)." })
-    );
   };
 
   return (
@@ -159,7 +141,7 @@ const ConvertTool = () => {
         <DropZone onFile={handleFile} />
       ) : (
         <div className="space-y-3">
-          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg group">
+          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
             <video ref={videoRef} src={previewUrl} controls className="w-full max-h-60 object-contain"
               onLoadedMetadata={() => { const d = videoRef.current?.duration || 0; setDuration(d); setTrimEnd(d); }} />
             <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors">
@@ -176,7 +158,6 @@ const ConvertTool = () => {
 
       {file && !result && (
         <>
-          {/* Format + Resolution + Quality */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-xs text-gray-500">Output Format</Label>
@@ -192,7 +173,6 @@ const ConvertTool = () => {
                 </SelectContent>
               </Select>
             </div>
-
             {!isAudio(fmt) && (
               <div className="space-y-1">
                 <Label className="text-xs text-gray-500">Resolution</Label>
@@ -207,7 +187,6 @@ const ConvertTool = () => {
                 </Select>
               </div>
             )}
-
             <div className="space-y-1">
               <Label className="text-xs text-gray-500">Quality</Label>
               <Select value={quality} onValueChange={v => setQuality(v as Quality)}>
@@ -221,7 +200,6 @@ const ConvertTool = () => {
             </div>
           </div>
 
-          {/* Rotate / Flip — video only */}
           {!isAudio(fmt) && fmt !== "muted" && (
             <div className="space-y-1">
               <Label className="text-xs text-gray-500 flex items-center gap-1"><RotateCcw className="w-3 h-3" /> Rotate / Flip</Label>
@@ -236,7 +214,6 @@ const ConvertTool = () => {
             </div>
           )}
 
-          {/* Trim */}
           {duration > 0 && !isAudio(fmt) && (
             <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-3">
               <div className="flex items-center gap-2">
@@ -249,49 +226,18 @@ const ConvertTool = () => {
             </div>
           )}
 
-          <Button onClick={handleConvert} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11 text-base font-semibold">
-            {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Converting…</> : "Convert Now"}
-          </Button>
+          <AnimatedButton onClick={handleConvert} loading={processing} className="w-full" size="lg">
+            {processing ? "Converting…" : "Convert Now"}
+          </AnimatedButton>
 
-          {processing && (
-            <div className="space-y-2 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4">
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>Processing with FFmpeg…</span>
-                <span className="font-mono font-semibold text-violet-600">{progress}%</span>
-              </div>
-              <Progress value={progress} className="h-2.5" />
-            </div>
-          )}
+          {processing && <AnimatedProgress value={progress} label="Processing with FFmpeg…" done={done} />}
         </>
       )}
 
-      {/* Result dashboard */}
       {result && (
-        <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-5 space-y-4">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center shrink-0">
-              <span className="text-white text-sm">✓</span>
-            </div>
-            <div>
-              <p className="font-semibold text-green-800 dark:text-green-300">Conversion complete!</p>
-              <p className="text-xs text-green-600 dark:text-green-500">{result.size} · {result.filename.split(".").pop()?.toUpperCase()}</p>
-            </div>
-          </div>
-
-          <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
-
-          <div className="grid grid-cols-2 gap-2">
-            <Button onClick={convertAgain} variant="outline" className="w-full gap-2">
-              <RefreshCw className="w-4 h-4" /> Convert again
-            </Button>
-            <Button onClick={copyLink} variant="outline" className="w-full gap-2">
-              🔗 Copy link
-            </Button>
-          </div>
-          <Button onClick={reset} variant="ghost" className="w-full text-gray-500 text-sm">
-            Upload new file
-          </Button>
-        </div>
+        <ResultCard url={result.url} filename={result.filename} size={result.size}
+          onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setProgress(0); setDone(false); }}
+          onReset={reset} />
       )}
     </div>
   );

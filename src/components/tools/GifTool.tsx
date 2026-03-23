@@ -1,6 +1,4 @@
 import { useState, useRef } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -9,8 +7,10 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
-import DownloadCard from "@/components/DownloadCard";
-import { X, RefreshCw } from "lucide-react";
+import ResultCard from "@/components/ResultCard";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { X } from "lucide-react";
 
 const GifTool = () => {
   const [video, setVideo] = useState<File | null>(null);
@@ -22,26 +22,27 @@ const GifTool = () => {
   const [width, setWidth] = useState("480");
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
+  const [done, setDone] = useState(false);
+  const [result, setResult] = useState<{ url: string; filename: string; size: string; preview?: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
   const handleVideo = (f: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null);
+    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false);
   };
 
   const handleProcess = async () => {
     if (!video) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
@@ -51,28 +52,17 @@ const GifTool = () => {
       const s = parseFloat(start) || 0;
       const d = parseFloat(gifDuration) || 5;
       const w = parseInt(width) || 480;
-      // Two-pass GIF: generate palette first for better quality
-      await ff.exec([
-        "-ss", s.toFixed(2), "-t", d.toFixed(2),
-        "-i", `input.${vExt}`,
-        "-vf", `fps=${fps},scale=${w}:-1:flags=lanczos,palettegen`,
-        "palette.png"
-      ]);
+      await ff.exec(["-ss", s.toFixed(2), "-t", d.toFixed(2), "-i", `input.${vExt}`, "-vf", `fps=${fps},scale=${w}:-1:flags=lanczos,palettegen`, "palette.png"]);
       setProgress(40);
-      await ff.exec([
-        "-ss", s.toFixed(2), "-t", d.toFixed(2),
-        "-i", `input.${vExt}`,
-        "-i", "palette.png",
-        "-filter_complex", `fps=${fps},scale=${w}:-1:flags=lanczos[x];[x][1:v]paletteuse`,
-        "output.gif"
-      ]);
+      await ff.exec(["-ss", s.toFixed(2), "-t", d.toFixed(2), "-i", `input.${vExt}`, "-i", "palette.png", "-filter_complex", `fps=${fps},scale=${w}:-1:flags=lanczos[x];[x][1:v]paletteuse`, "output.gif"]);
       await ff.deleteFile(`input.${vExt}`);
       await ff.deleteFile("palette.png");
       const blob = await readOutputBlob(ff, "output.gif", "image/gif");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
-      setResult({ url, filename: `${base}.gif`, size: formatBytes(blob.size) });
-      toast({ title: "GIF created!", description: `${formatBytes(blob.size)}` });
+      setDone(true);
+      setResult({ url, filename: `${base}.gif`, size: formatBytes(blob.size), preview: url });
+      toast({ title: "GIF created!", description: formatBytes(blob.size) });
     } catch (e) {
       toast({ variant: "destructive", title: "Failed", description: String(e) });
     } finally {
@@ -86,11 +76,11 @@ const GifTool = () => {
         <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
           <video ref={videoRef} src={previewUrl} controls className="w-full max-h-52 object-contain"
             onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} />
-          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1"><X className="w-4 h-4" /></button>
+          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5"><X className="w-3.5 h-3.5" /></button>
         </div>
       )}
 
-      {video && (
+      {video && !result && (
         <>
           <div className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
             <div className="grid grid-cols-2 gap-3">
@@ -114,24 +104,19 @@ const GifTool = () => {
             <p className="text-xs text-gray-400">💡 Keep duration short (&lt;10s) and width small for reasonable file sizes.</p>
           </div>
 
-          {!result && (
-            <Button onClick={handleProcess} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11">
-              {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Creating GIF…</> : "Convert to GIF"}
-            </Button>
-          )}
-          {processing && <div className="space-y-1"><Progress value={progress} className="h-2" /><p className="text-xs text-right text-gray-500">{progress}%</p></div>}
-          {result && (
-            <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
-              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ GIF ready!</p>
-              <img src={result.url} alt="GIF preview" className="w-full rounded-xl border border-gray-200 dark:border-gray-700" />
-              <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => { if(result) URL.revokeObjectURL(result.url); setResult(null); }} className="w-full gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
-                <Button variant="ghost" onClick={reset} className="w-full text-sm">New file</Button>
-              </div>
-            </div>
-          )}
+          <AnimatedButton onClick={handleProcess} loading={processing} className="w-full" size="lg">
+            {processing ? "Creating GIF…" : "Convert to GIF"}
+          </AnimatedButton>
+
+          {processing && <AnimatedProgress value={progress} label="Creating GIF…" done={done} />}
         </>
+      )}
+
+      {result && (
+        <ResultCard url={result.url} filename={result.filename} size={result.size}
+          preview={result.preview}
+          onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setDone(false); }}
+          onReset={reset} />
       )}
     </div>
   );

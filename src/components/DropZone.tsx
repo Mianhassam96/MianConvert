@@ -1,12 +1,15 @@
 import { useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { UploadCloud } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface DropZoneProps {
   onFile: (file: File) => void;
+  accept?: string;
+  label?: string;
 }
 
-const DropZone = ({ onFile }: DropZoneProps) => {
+const DropZone = ({ onFile, accept = "video/*", label }: DropZoneProps) => {
   const [dragging, setDragging] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -14,7 +17,7 @@ const DropZone = ({ onFile }: DropZoneProps) => {
     e.preventDefault();
     setDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file && file.type.startsWith("video/")) onFile(file);
+    if (file) onFile(file);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -23,33 +26,49 @@ const DropZone = ({ onFile }: DropZoneProps) => {
   };
 
   return (
-    <div
+    <motion.div
       onClick={() => inputRef.current?.click()}
       onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
       onDragLeave={() => setDragging(false)}
       onDrop={handleDrop}
+      whileHover={{ scale: 1.01 }}
+      whileTap={{ scale: 0.99 }}
       className={cn(
-        "border-2 border-dashed rounded-2xl p-12 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all",
+        "relative rounded-2xl p-10 flex flex-col items-center justify-center gap-4 cursor-pointer transition-all duration-300 overflow-hidden",
         dragging
-          ? "border-violet-500 bg-violet-50 dark:bg-violet-950/20"
-          : "border-gray-300 hover:border-violet-400 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800/40"
+          ? "drop-border bg-violet-50/80 dark:bg-violet-950/30"
+          : "border-2 border-dashed border-gray-300 dark:border-gray-700 hover:border-violet-400 dark:hover:border-violet-600 bg-gray-50/50 dark:bg-gray-900/50"
       )}
     >
-      <UploadCloud className={cn("w-12 h-12 transition-colors", dragging ? "text-violet-500" : "text-gray-400")} />
-      <div className="text-center">
-        <p className="text-lg font-semibold text-gray-700 dark:text-gray-200">
-          Drop your video here
+      {/* Background glow when dragging */}
+      <AnimatePresence>
+        {dragging && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 bg-violet-500/5 pointer-events-none" />
+        )}
+      </AnimatePresence>
+
+      <motion.div
+        animate={dragging ? { scale: 1.15, rotate: -5 } : { scale: 1, rotate: 0 }}
+        transition={{ type: "spring", stiffness: 300 }}
+        className={cn("w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg transition-colors",
+          dragging ? "bg-violet-600 shadow-violet-500/40" : "bg-violet-100 dark:bg-violet-950/50"
+        )}
+      >
+        <UploadCloud className={cn("w-7 h-7 transition-colors", dragging ? "text-white" : "text-violet-500")} />
+      </motion.div>
+
+      <div className="text-center space-y-1">
+        <p className="text-base font-semibold text-gray-700 dark:text-gray-200">
+          {dragging ? "Drop it!" : label || "Drop your video here"}
         </p>
-        <p className="text-sm text-gray-500 mt-1">or click to browse — MP4, WebM, MOV, AVI, MKV supported</p>
+        <p className="text-sm text-gray-400 dark:text-gray-500">
+          or <span className="text-violet-500 font-medium">click to browse</span> — MP4, WebM, MOV, AVI, MKV
+        </p>
       </div>
-      <input
-        ref={inputRef}
-        type="file"
-        accept="video/*"
-        className="hidden"
-        onChange={handleChange}
-      />
-    </div>
+
+      <input ref={inputRef} type="file" accept={accept} className="hidden" onChange={handleChange} />
+    </motion.div>
   );
 };
 

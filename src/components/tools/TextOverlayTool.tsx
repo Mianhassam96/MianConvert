@@ -1,6 +1,4 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -9,35 +7,23 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
-import DownloadCard from "@/components/DownloadCard";
-import { X, RefreshCw, Plus, Trash2 } from "lucide-react";
+import ResultCard from "@/components/ResultCard";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { X, Plus, Trash2 } from "lucide-react";
 
 type Align = "left" | "center" | "right";
 type VPos = "top" | "middle" | "bottom";
 type Animation = "none" | "fadein" | "fadeout";
 
 interface TextLayer {
-  id: string;
-  text: string;
-  fontSize: number;
-  color: string;
-  align: Align;
-  vpos: VPos;
-  startTime: number;
-  endTime: number;
-  animation: Animation;
+  id: string; text: string; fontSize: number; color: string;
+  align: Align; vpos: VPos; startTime: number; endTime: number; animation: Animation;
 }
 
 const defaultLayer = (): TextLayer => ({
-  id: crypto.randomUUID(),
-  text: "Your text here",
-  fontSize: 36,
-  color: "#ffffff",
-  align: "center",
-  vpos: "bottom",
-  startTime: 0,
-  endTime: 5,
-  animation: "none",
+  id: crypto.randomUUID(), text: "Your text here", fontSize: 36, color: "#ffffff",
+  align: "center", vpos: "bottom", startTime: 0, endTime: 5, animation: "none",
 });
 
 const xExpr = (align: Align) => align === "left" ? "20" : align === "right" ? "w-tw-20" : "(w-tw)/2";
@@ -49,19 +35,20 @@ const TextOverlayTool = () => {
   const [layers, setLayers] = useState<TextLayer[]>([defaultLayer()]);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
   const handleVideo = (f: File) => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
-    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null);
+    setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false);
   };
 
   const update = (id: string, patch: Partial<TextLayer>) =>
@@ -81,7 +68,7 @@ const TextOverlayTool = () => {
   const handleProcess = async () => {
     if (!video || !layers.length) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
@@ -94,6 +81,7 @@ const TextOverlayTool = () => {
       const blob = await readOutputBlob(ff, "text.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      setDone(true);
       setResult({ url, filename: `${base}-text.mp4`, size: formatBytes(blob.size) });
       toast({ title: "Done!" });
     } catch (e) {
@@ -112,7 +100,7 @@ const TextOverlayTool = () => {
         </div>
       )}
 
-      {video && (
+      {video && !result && (
         <>
           <div className="space-y-3">
             {layers.map((l, i) => (
@@ -120,7 +108,7 @@ const TextOverlayTool = () => {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">Text layer {i + 1}</span>
                   {layers.length > 1 && (
-                    <button onClick={() => setLayers(prev => prev.filter(x => x.id !== l.id))} className="text-red-400 hover:text-red-600"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button onClick={() => setLayers(prev => prev.filter(x => x.id !== l.id))} className="text-red-400 hover:text-red-600 transition-colors"><Trash2 className="w-3.5 h-3.5" /></button>
                   )}
                 </div>
                 <Input value={l.text} onChange={e => update(l.id, { text: e.target.value })} placeholder="Enter text…" />
@@ -179,28 +167,23 @@ const TextOverlayTool = () => {
                 </div>
               </div>
             ))}
-            <Button variant="outline" onClick={() => setLayers(prev => [...prev, defaultLayer()])} className="w-full gap-2 border-dashed">
+            <AnimatedButton variant="outline" onClick={() => setLayers(prev => [...prev, defaultLayer()])} className="w-full border-dashed">
               <Plus className="w-4 h-4" /> Add text layer
-            </Button>
+            </AnimatedButton>
           </div>
 
-          {!result && (
-            <Button onClick={handleProcess} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11 font-semibold">
-              {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Rendering…</> : "Render with Text"}
-            </Button>
-          )}
-          {processing && <div className="space-y-1.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4"><div className="flex justify-between text-xs text-gray-500 mb-1"><span>Rendering text…</span><span className="font-mono text-violet-600">{progress}%</span></div><Progress value={progress} className="h-2" /></div>}
-          {result && (
-            <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
-              <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ Text overlay applied!</p>
-              <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
-              <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" onClick={() => { if (result) URL.revokeObjectURL(result.url); setResult(null); }} className="gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
-                <Button variant="ghost" onClick={reset} className="text-sm">New file</Button>
-              </div>
-            </div>
-          )}
+          <AnimatedButton onClick={handleProcess} loading={processing} className="w-full" size="lg">
+            {processing ? "Rendering…" : "Render with Text"}
+          </AnimatedButton>
+
+          {processing && <AnimatedProgress value={progress} label="Rendering text…" done={done} />}
         </>
+      )}
+
+      {result && (
+        <ResultCard url={result.url} filename={result.filename} size={result.size}
+          onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setDone(false); }}
+          onReset={reset} />
       )}
     </div>
   );

@@ -1,17 +1,18 @@
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
-import DownloadCard from "@/components/DownloadCard";
-import { UploadCloud, X, RefreshCw, GripVertical } from "lucide-react";
+import ResultCard from "@/components/ResultCard";
+import AnimatedButton from "@/components/ui/AnimatedButton";
+import AnimatedProgress from "@/components/ui/AnimatedProgress";
+import { UploadCloud, X, GripVertical } from "lucide-react";
 
 const MergeTool = () => {
   const [files, setFiles] = useState<File[]>([]);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
+  const [done, setDone] = useState(false);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
@@ -27,12 +28,11 @@ const MergeTool = () => {
   const handleMerge = async () => {
     if (files.length < 2) { toast({ variant: "destructive", title: "Add at least 2 videos" }); return; }
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
     try {
-      // Write all input files and build concat list
       const names: string[] = [];
       for (let i = 0; i < files.length; i++) {
         const name = `merge_${i}.${files[i].name.split(".").pop()}`;
@@ -46,6 +46,7 @@ const MergeTool = () => {
       await ff.deleteFile("concat.txt");
       const blob = await readOutputBlob(ff, "merged.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
+      setDone(true);
       setResult({ url, filename: "merged-mianconvert.mp4", size: formatBytes(blob.size) });
       toast({ title: "Merged!", description: `${files.length} videos combined.` });
     } catch (e) {
@@ -57,7 +58,7 @@ const MergeTool = () => {
 
   return (
     <div className="space-y-5">
-      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center">
+      <div className="border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl p-6 text-center hover:border-violet-400 transition-colors">
         <label className="cursor-pointer flex flex-col items-center gap-2">
           <UploadCloud className="w-8 h-8 text-gray-400" />
           <span className="text-sm font-medium text-gray-600 dark:text-gray-300">Click to add videos</span>
@@ -75,27 +76,24 @@ const MergeTool = () => {
               <span className="w-5 h-5 rounded-full bg-violet-100 text-violet-700 text-xs flex items-center justify-center font-bold shrink-0">{i + 1}</span>
               <span className="flex-1 truncate text-gray-700 dark:text-gray-200">{f.name}</span>
               <span className="text-gray-400 text-xs shrink-0">{formatBytes(f.size)}</span>
-              <button onClick={() => remove(i)} className="text-gray-400 hover:text-red-500"><X className="w-4 h-4" /></button>
+              <button onClick={() => remove(i)} className="text-gray-400 hover:text-red-500 transition-colors"><X className="w-4 h-4" /></button>
             </div>
           ))}
         </div>
       )}
 
       {files.length >= 2 && !result && (
-        <Button onClick={handleMerge} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11">
-          {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Merging…</> : `Merge ${files.length} Videos`}
-        </Button>
+        <AnimatedButton onClick={handleMerge} loading={processing} className="w-full" size="lg">
+          {processing ? "Merging…" : `Merge ${files.length} Videos`}
+        </AnimatedButton>
       )}
-      {processing && <div className="space-y-1"><Progress value={progress} className="h-2" /><p className="text-xs text-right text-gray-500">{progress}%</p></div>}
+
+      {processing && <AnimatedProgress value={progress} label="Merging videos…" done={done} />}
+
       {result && (
-        <div className="rounded-2xl border-2 border-green-200 dark:border-green-900 bg-green-50 dark:bg-green-950/20 p-4 space-y-3">
-          <p className="text-sm font-semibold text-green-700 dark:text-green-400">✓ Merged {files.length} videos!</p>
-          <DownloadCard url={result.url} filename={result.filename} label="Merged Video" size={result.size} />
-          <div className="grid grid-cols-2 gap-2">
-            <Button variant="outline" onClick={() => { if(result) URL.revokeObjectURL(result.url); setResult(null); }} className="w-full gap-1"><RefreshCw className="w-3.5 h-3.5" />Again</Button>
-            <Button variant="ghost" onClick={() => { setFiles([]); setResult(null); }} className="w-full text-sm">New files</Button>
-          </div>
-        </div>
+        <ResultCard url={result.url} filename={result.filename} size={result.size}
+          onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setDone(false); }}
+          onReset={() => { setFiles([]); setResult(null); setDone(false); }} />
       )}
     </div>
   );

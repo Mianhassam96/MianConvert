@@ -2,6 +2,7 @@ import { Sun, Moon, Menu, X } from "lucide-react";
 import { useTheme } from "@/hooks/use-theme";
 import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 
 const NAV = [
@@ -16,24 +17,28 @@ const Header = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-gradient-to-r from-violet-700 via-purple-600 to-fuchsia-600 shadow-xl">
-      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
+    <header className="sticky top-0 z-50 bg-gradient-to-r from-violet-700 via-purple-600 to-fuchsia-600 shadow-xl shadow-violet-900/20">
+      {/* Subtle animated shimmer line at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2.5 group" onClick={() => setOpen(false)}>
-          <div className="relative">
-            <div className="w-9 h-9 rounded-xl bg-yellow-400 flex items-center justify-center shadow-lg group-hover:animate-pulse-glow transition-all">
-              <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
-                <polygon points="6,4 20,12 6,20" fill="#5b21b6"/>
-                <rect x="3" y="4" width="2.5" height="16" rx="1.25" fill="#5b21b6"/>
-              </svg>
-            </div>
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-400 rounded-full border-2 border-white animate-pulse" />
-          </div>
+          <motion.div whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }} transition={{ duration: 0.4 }}
+            className="w-9 h-9 rounded-xl bg-yellow-400 flex items-center justify-center shadow-lg shadow-yellow-500/30">
+            <svg viewBox="0 0 24 24" className="w-5 h-5" fill="none">
+              <polygon points="6,4 20,12 6,20" fill="#5b21b6" />
+              <rect x="3" y="4" width="2.5" height="16" rx="1.25" fill="#5b21b6" />
+            </svg>
+          </motion.div>
           <div className="leading-none">
-            <span className="text-xl font-black text-white tracking-tight bg-clip-text">
-              Mian<span className="text-yellow-300">Convert</span>
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-xl font-black text-white tracking-tight">
+                Mian<span className="text-yellow-300">Convert</span>
+              </span>
+              <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                className="w-2 h-2 bg-green-400 rounded-full shadow-sm shadow-green-400/50" />
+            </div>
             <p className="text-[10px] text-violet-200 font-medium tracking-widest uppercase">Video Toolkit</p>
           </div>
         </Link>
@@ -42,41 +47,63 @@ const Header = () => {
         <nav className="hidden sm:flex items-center gap-1">
           {NAV.map(n => (
             <Link key={n.to} to={n.to}
-              className={cn("px-3 py-1.5 rounded-lg text-sm font-medium transition-all",
-                pathname === n.to
-                  ? "bg-white/20 text-white"
-                  : "text-violet-200 hover:bg-white/10 hover:text-white"
+              className={cn("relative px-3 py-1.5 rounded-lg text-sm font-medium transition-colors",
+                pathname === n.to ? "text-white" : "text-violet-200 hover:text-white"
               )}>
-              {n.label}
+              {pathname === n.to && (
+                <motion.span layoutId="nav-pill"
+                  className="absolute inset-0 bg-white/20 rounded-lg"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }} />
+              )}
+              <span className="relative z-10">{n.label}</span>
             </Link>
           ))}
         </nav>
 
         <div className="flex items-center gap-2">
-          <button onClick={toggle} aria-label="Toggle theme"
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={toggle} aria-label="Toggle theme"
             className="bg-white/15 hover:bg-white/25 text-white rounded-lg p-2 transition-colors">
-            {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-          </button>
-          {/* Mobile menu toggle */}
-          <button onClick={() => setOpen(o => !o)} className="sm:hidden bg-white/15 hover:bg-white/25 text-white rounded-lg p-2">
-            {open ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-          </button>
+            <AnimatePresence mode="wait">
+              <motion.span key={theme} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.2 }}>
+                {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
+
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+            onClick={() => setOpen(o => !o)}
+            className="sm:hidden bg-white/15 hover:bg-white/25 text-white rounded-lg p-2 transition-colors">
+            <AnimatePresence mode="wait">
+              <motion.span key={open ? "x" : "m"} initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
+                {open ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+              </motion.span>
+            </AnimatePresence>
+          </motion.button>
         </div>
       </div>
 
       {/* Mobile nav */}
-      {open && (
-        <div className="sm:hidden border-t border-white/20 px-4 py-3 flex flex-col gap-1 animate-fade-in">
-          {NAV.map(n => (
-            <Link key={n.to} to={n.to} onClick={() => setOpen(false)}
-              className={cn("px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                pathname === n.to ? "bg-white/20 text-white" : "text-violet-200 hover:bg-white/10 hover:text-white"
-              )}>
-              {n.label}
-            </Link>
-          ))}
-        </div>
-      )}
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="sm:hidden overflow-hidden border-t border-white/20">
+            <div className="px-4 py-3 flex flex-col gap-1">
+              {NAV.map((n, i) => (
+                <motion.div key={n.to} initial={{ x: -16, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: i * 0.05 }}>
+                  <Link to={n.to} onClick={() => setOpen(false)}
+                    className={cn("block px-3 py-2 rounded-lg text-sm font-medium transition-colors",
+                      pathname === n.to ? "bg-white/20 text-white" : "text-violet-200 hover:bg-white/10 hover:text-white"
+                    )}>
+                    {n.label}
+                  </Link>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 };

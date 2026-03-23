@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { fadeUp, stagger } from "@/lib/motion";
 
 const STATS = [
-  { value: "11", label: "Tools" },
+  { value: "13", label: "Tools" },
   { value: "10+", label: "Formats" },
   { value: "0", label: "Uploads" },
   { value: "100%", label: "Private" },
@@ -45,7 +45,7 @@ const Index = () => (
           </motion.h1>
 
           <motion.p variants={fadeUp} className="text-gray-500 dark:text-gray-400 max-w-lg mx-auto text-sm sm:text-base leading-relaxed">
-            11 tools, 10+ formats — convert, clip, filter, add text, merge, rotate and more. Zero uploads. Everything stays on your device.
+            13 tools, 10+ formats — convert, compress, mute, clip, filter, add text, merge, rotate and more. Zero uploads. Everything stays on your device.
           </motion.p>
 
           {/* Stats */}

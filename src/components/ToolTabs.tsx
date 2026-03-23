@@ -7,7 +7,6 @@ import CompressTool from "./tools/CompressTool";
 import MuteTool from "./tools/MuteTool";
 import MergeTool from "./tools/MergeTool";
 import WatermarkTool from "./tools/WatermarkTool";
-import SubtitleTool from "./tools/SubtitleTool";
 import SpeedTool from "./tools/SpeedTool";
 import RotateTool from "./tools/RotateTool";
 import FramesTool from "./tools/FramesTool";
@@ -25,7 +24,6 @@ const TABS = [
   { id: "text",     icon: "✍️",  label: "Text",      desc: "Captions & overlays" },
   { id: "merge",    icon: "🔗", label: "Merge",     desc: "Combine videos" },
   { id: "watermark",icon: "🖼",  label: "Watermark", desc: "Add logo" },
-  { id: "subtitles",icon: "💬", label: "Subtitles", desc: "Burn SRT captions" },
   { id: "speed",    icon: "⚡", label: "Speed",     desc: "Slow / fast motion" },
   { id: "rotate",   icon: "↻",  label: "Rotate",    desc: "Rotate & flip" },
   { id: "frames",   icon: "📸", label: "Frames",    desc: "Extract snapshots" },
@@ -43,7 +41,6 @@ const TOOL_MAP: Record<TabId, React.ReactNode> = {
   text:      <TextOverlayTool />,
   merge:     <MergeTool />,
   watermark: <WatermarkTool />,
-  subtitles: <SubtitleTool />,
   speed:     <SpeedTool />,
   rotate:    <RotateTool />,
   frames:    <FramesTool />,

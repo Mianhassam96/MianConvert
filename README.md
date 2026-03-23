@@ -1,6 +1,6 @@
-Video-Processor
+MianConvert
 
-Video-Processor is a powerful and user-friendly web application designed to simplify video processing. With this tool, users can:
+MianConvert is a powerful and user-friendly web application designed to simplify video processing. With this tool, users can:
 
     Upload videos easily.
     Generate sharable links for uploaded videos.
@@ -17,7 +17,7 @@ Features
     Strong Type Safety: Powered by TypeScript.
 
 Tech Stack
-
+ 
     Vite: For blazing-fast builds and a great developer experience.
     React: For building an interactive UI.
     shadcn-ui: To enhance the design and functionality.

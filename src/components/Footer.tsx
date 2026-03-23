@@ -1,4 +1,5 @@
 import { Zap, Github, Globe, Heart } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const TOOLS = ["Convert", "Merge", "Watermark", "Subtitles", "Speed", "Frames", "GIF"];
 const FEATURES = ["No file uploads", "100% browser-based", "FFmpeg powered", "Free forever", "Privacy first"];
@@ -38,15 +39,13 @@ const Footer = () => (
           </ul>
         </div>
 
-        {/* Features */}
+        {/* Pages */}
         <div className="space-y-3">
-          <p className="text-white font-semibold text-sm uppercase tracking-wider">Why MianConvert</p>
+          <p className="text-white font-semibold text-sm uppercase tracking-wider">Pages</p>
           <ul className="space-y-1.5">
-            {FEATURES.map((f) => (
-              <li key={f} className="text-sm flex items-center gap-2">
-                <span className="text-violet-500">✓</span> {f}
-              </li>
-            ))}
+            <li><Link to="/" className="text-sm hover:text-violet-300 transition-colors">Home</Link></li>
+            <li><Link to="/about" className="text-sm hover:text-violet-300 transition-colors">About</Link></li>
+            <li><Link to="/contact" className="text-sm hover:text-violet-300 transition-colors">Contact</Link></li>
           </ul>
         </div>
       </div>

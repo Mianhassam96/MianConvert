@@ -1,308 +1,339 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 import DropZone from "./DropZone";
 import DownloadCard from "./DownloadCard";
-import { FileVideo, RefreshCw, X } from "lucide-react";
+import BatchQueue, { BatchFile } from "./BatchQueue";
+import TrimControl from "./TrimControl";
+import { useFFmpeg } from "@/hooks/use-ffmpeg";
+import { fetchFile } from "@ffmpeg/util";
+import { detectDevice, recommendedFormat, recommendedResolution } from "@/lib/device";
+import { FileVideo, RefreshCw, X, Plus, Scissors, Cpu } from "lucide-react";
+import { cn } from "@/lib/utils";
 
-type OutputFormat = "mp4" | "mp3" | "webm" | "muted" | "audio";
+type OutputFormat = "mp4" | "webm" | "mp3" | "muted";
+type Resolution = "4k" | "1080p" | "720p" | "480p" | "original";
+type Quality = "high" | "medium" | "low";
 
-interface ConvertedFile {
-  url: string;
-  filename: string;
-  label: string;
-  size: string;
-}
-
-const FORMAT_OPTIONS: { value: OutputFormat; label: string; desc: string }[] = [
-  { value: "mp4",   label: "MP4",          desc: "Convert to MP4 video" },
-  { value: "webm",  label: "WebM",         desc: "Convert to WebM video" },
-  { value: "mp3",   label: "MP3 / Audio",  desc: "Extract audio track" },
-  { value: "muted", label: "Mute Video",   desc: "Remove audio from video" },
-];
-
-const formatBytes = (bytes: number) => {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+const RESOLUTIONS: Record<Resolution, string> = {
+  "4k": "3840:2160",
+  "1080p": "1920:1080",
+  "720p": "1280:720",
+  "480p": "854:480",
+  "original": "",
 };
 
+const QUALITY_CRF: Record<Quality, string> = {
+  high: "18",
+  medium: "28",
+  low: "38",
+};
+
+const formatBytes = (b: number) =>
+  b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / (1024 * 1024)).toFixed(2)} MB`;
+
+const FORMAT_OPTIONS: { value: OutputFormat; label: string }[] = [
+  { value: "mp4", label: "MP4" },
+  { value: "webm", label: "WebM" },
+  { value: "mp3", label: "MP3 (audio only)" },
+  { value: "muted", label: "Mute video" },
+];
+
 const VideoConverter = () => {
-  const [file, setFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [files, setFiles] = useState<File[]>([]);
+  const [activeFile, setActiveFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [duration, setDuration] = useState(0);
+  const [trimStart, setTrimStart] = useState(0);
+  const [trimEnd, setTrimEnd] = useState(0);
+  const [trimEnabled, setTrimEnabled] = useState(false);
   const [format, setFormat] = useState<OutputFormat>("mp4");
+  const [resolution, setResolution] = useState<Resolution>("original");
+  const [quality, setQuality] = useState<Quality>("medium");
+  const [batchMode, setBatchMode] = useState(false);
+  const [batchFiles, setBatchFiles] = useState<BatchFile[]>([]);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
-  const [result, setResult] = useState<ConvertedFile | null>(null);
+  const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
+  const { ffmpeg, loaded, loading, load } = useFFmpeg();
+
+  // Auto-detect device and set defaults
+  useEffect(() => {
+    const device = detectDevice();
+    setFormat(recommendedFormat(device) as OutputFormat);
+    setResolution(recommendedResolution(device) as Resolution);
+  }, []);
 
   const handleFile = (f: File) => {
-    setFile(f);
+    if (batchMode) {
+      const id = crypto.randomUUID();
+      setBatchFiles((prev) => [...prev, { id, file: f, status: "pending", progress: 0 }]);
+      setFiles((prev) => [...prev, f]);
+      return;
+    }
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setActiveFile(f);
     setPreviewUrl(URL.createObjectURL(f));
     setResult(null);
     setProgress(0);
+    setTrimEnabled(false);
+  };
+
+  const handleMultiFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = Array.from(e.target.files || []).filter((f) => f.type.startsWith("video/"));
+    picked.forEach(handleFile);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setFile(null);
+    setActiveFile(null);
     setPreviewUrl("");
     setResult(null);
     setProgress(0);
+    setTrimEnabled(false);
   };
 
-  // Extract audio using Web Audio API + MediaRecorder
-  const extractAudio = (): Promise<Blob> =>
-    new Promise((resolve, reject) => {
-      const video = document.createElement("video");
-      video.src = previewUrl;
-      video.crossOrigin = "anonymous";
+  const buildFFmpegArgs = (inputName: string, outputName: string, fmt: OutputFormat, res: Resolution, q: Quality, trim: boolean, ts: number, te: number) => {
+    const args: string[] = ["-i", inputName];
+    if (trim) {
+      args.push("-ss", ts.toFixed(2), "-to", te.toFixed(2));
+    }
+    if (fmt === "mp3") {
+      args.push("-vn", "-acodec", "libmp3lame", "-q:a", "2");
+    } else if (fmt === "muted") {
+      args.push("-an");
+      if (res !== "original") args.push("-vf", `scale=${RESOLUTIONS[res]}:force_original_aspect_ratio=decrease`);
+      args.push("-crf", QUALITY_CRF[q], "-preset", "fast");
+    } else {
+      if (res !== "original") args.push("-vf", `scale=${RESOLUTIONS[res]}:force_original_aspect_ratio=decrease`);
+      args.push("-crf", QUALITY_CRF[q], "-preset", "fast");
+      if (fmt === "webm") args.push("-c:v", "libvpx-vp9", "-c:a", "libopus");
+      else args.push("-c:v", "libx264", "-c:a", "aac");
+    }
+    args.push(outputName);
+    return args;
+  };
 
-      video.addEventListener("canplay", () => {
-        const ctx = new AudioContext();
-        const src = ctx.createMediaElementSource(video);
-        const dest = ctx.createMediaStreamDestination();
-        src.connect(dest);
+  const runConversion = async (file: File, fmt: OutputFormat, res: Resolution, q: Quality, trim: boolean, ts: number, te: number, onProgress: (p: number) => void) => {
+    if (!ffmpeg.current) throw new Error("FFmpeg not loaded");
+    const ff = ffmpeg.current;
 
-        const recorder = new MediaRecorder(dest.stream);
-        const chunks: BlobPart[] = [];
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-        recorder.onstop = () => resolve(new Blob(chunks, { type: "audio/webm" }));
-        recorder.onerror = reject;
+    const ext = fmt === "mp3" ? "mp3" : fmt === "webm" ? "webm" : "mp4";
+    const inputName = `input_${Date.now()}.${file.name.split(".").pop()}`;
+    const outputName = `output_${Date.now()}.${ext}`;
 
-        video.ontimeupdate = () => {
-          const pct = (video.currentTime / video.duration) * 100;
-          setProgress(Math.min(Math.round(pct), 99));
-        };
-        video.onended = () => { recorder.stop(); ctx.close(); };
+    ff.on("progress", ({ progress: p }) => onProgress(Math.round(p * 100)));
 
-        recorder.start();
-        video.play().catch(reject);
-      });
+    await ff.writeFile(inputName, await fetchFile(file));
+    const args = buildFFmpegArgs(inputName, outputName, fmt, res, q, trim, ts, te);
+    await ff.exec(args);
 
-      video.onerror = reject;
-      video.load();
-    });
+    const data = await ff.readFile(outputName);
+    await ff.deleteFile(inputName);
+    await ff.deleteFile(outputName);
+    ff.off("progress", () => {});
 
-  // Mute video: capture canvas frames without audio
-  const muteVideo = (): Promise<Blob> =>
-    new Promise((resolve, reject) => {
-      const video = document.createElement("video");
-      video.src = previewUrl;
-      video.muted = true;
-
-      video.addEventListener("loadedmetadata", () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d")!;
-
-        const stream = canvas.captureStream();
-        const recorder = new MediaRecorder(stream, { mimeType: "video/webm;codecs=vp8" });
-        const chunks: BlobPart[] = [];
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-        recorder.onstop = () => resolve(new Blob(chunks, { type: "video/webm" }));
-        recorder.onerror = reject;
-
-        const draw = () => {
-          if (video.ended || video.paused) return;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const pct = (video.currentTime / video.duration) * 100;
-          setProgress(Math.min(Math.round(pct), 99));
-          requestAnimationFrame(draw);
-        };
-
-        recorder.start(100);
-        video.play().then(draw).catch(reject);
-        video.onended = () => recorder.stop();
-      });
-
-      video.onerror = reject;
-      video.load();
-    });
+    const mimeMap: Record<string, string> = { mp4: "video/mp4", webm: "video/webm", mp3: "audio/mpeg" };
+    const buffer = data instanceof Uint8Array ? data.buffer.slice(0) as ArrayBuffer : (data as unknown as ArrayBuffer);
+    return new Blob([buffer], { type: mimeMap[ext] || "video/mp4" });
+  };
 
   const handleConvert = async () => {
-    if (!file) return;
+    if (!activeFile) return;
+    if (!loaded) {
+      toast({ title: "Loading FFmpeg...", description: "Please wait while the engine loads." });
+      await load();
+    }
     setProcessing(true);
-    setProgress(5);
+    setProgress(0);
     setResult(null);
-
     try {
-      let blob: Blob;
-      let ext: string;
-      let label: string;
-
-      if (format === "mp3" || format === "audio") {
-        blob = await extractAudio();
-        ext = "webm";
-        label = "Extracted Audio";
-      } else if (format === "muted") {
-        blob = await muteVideo();
-        ext = "webm";
-        label = "Muted Video";
-      } else {
-        // For mp4/webm: re-wrap using MediaRecorder from the video stream
-        // Browser can only record in webm natively; we output as-is
-        blob = await muteVideoWithAudio();
-        ext = "webm";
-        label = format === "mp4" ? "Converted MP4 (WebM container)" : "Converted WebM";
-      }
-
-      setProgress(100);
+      const blob = await runConversion(activeFile, format, resolution, quality, trimEnabled, trimStart, trimEnd, setProgress);
       const url = URL.createObjectURL(blob);
-      const baseName = file.name.replace(/\.[^.]+$/, "");
-      setResult({
-        url,
-        filename: `${baseName}-mianconvert.${ext}`,
-        label,
-        size: formatBytes(blob.size),
-      });
+      const base = activeFile.name.replace(/\.[^.]+$/, "");
+      const ext = format === "mp3" ? "mp3" : format === "webm" ? "webm" : "mp4";
+      setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size) });
+      toast({ title: "Done!", description: "Your file is ready to download." });
     } catch (err) {
-      toast({ variant: "destructive", title: "Conversion failed", description: "Something went wrong. Try a different file or format." });
+      toast({ variant: "destructive", title: "Conversion failed", description: String(err) });
     } finally {
       setProcessing(false);
     }
   };
 
-  // Re-record video with audio (passthrough)
-  const muteVideoWithAudio = (): Promise<Blob> =>
-    new Promise((resolve, reject) => {
-      const video = document.createElement("video");
-      video.src = previewUrl;
-
-      video.addEventListener("loadedmetadata", () => {
-        const canvas = document.createElement("canvas");
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext("2d")!;
-
-        const audioCtx = new AudioContext();
-        const audioSrc = audioCtx.createMediaElementSource(video);
-        const audioDest = audioCtx.createMediaStreamDestination();
-        audioSrc.connect(audioDest);
-        audioSrc.connect(audioCtx.destination);
-
-        const videoStream = canvas.captureStream();
-        const combined = new MediaStream([
-          ...videoStream.getVideoTracks(),
-          ...audioDest.stream.getAudioTracks(),
-        ]);
-
-        const recorder = new MediaRecorder(combined, { mimeType: "video/webm;codecs=vp8,opus" });
-        const chunks: BlobPart[] = [];
-        recorder.ondataavailable = (e) => chunks.push(e.data);
-        recorder.onstop = () => { audioCtx.close(); resolve(new Blob(chunks, { type: "video/webm" })); };
-        recorder.onerror = reject;
-
-        const draw = () => {
-          if (video.ended || video.paused) return;
-          ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const pct = (video.currentTime / video.duration) * 100;
-          setProgress(Math.min(Math.round(pct), 99));
-          requestAnimationFrame(draw);
-        };
-
-        recorder.start(100);
-        video.play().then(draw).catch(reject);
-        video.onended = () => recorder.stop();
-      });
-
-      video.onerror = reject;
-      video.load();
-    });
+  const handleBatchConvert = async () => {
+    const pending = batchFiles.filter((f) => f.status === "pending");
+    if (!pending.length) return;
+    if (!loaded) {
+      toast({ title: "Loading FFmpeg..." });
+      await load();
+    }
+    for (const bf of pending) {
+      setBatchFiles((prev) => prev.map((f) => f.id === bf.id ? { ...f, status: "processing", progress: 0 } : f));
+      try {
+        const blob = await runConversion(bf.file, format, resolution, quality, false, 0, 0, (p) => {
+          setBatchFiles((prev) => prev.map((f) => f.id === bf.id ? { ...f, progress: p } : f));
+        });
+        const url = URL.createObjectURL(blob);
+        const base = bf.file.name.replace(/\.[^.]+$/, "");
+        const ext = format === "mp3" ? "mp3" : format === "webm" ? "webm" : "mp4";
+        setBatchFiles((prev) => prev.map((f) => f.id === bf.id ? { ...f, status: "done", resultUrl: url, resultName: `${base}-mianconvert.${ext}` } : f));
+      } catch (err) {
+        setBatchFiles((prev) => prev.map((f) => f.id === bf.id ? { ...f, status: "error", error: String(err) } : f));
+      }
+    }
+    toast({ title: "Batch complete!", description: `${pending.length} file(s) processed.` });
+  };
 
   return (
     <div className="space-y-6">
-      {!file ? (
-        <DropZone onFile={handleFile} />
-      ) : (
+      {/* Batch mode toggle */}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Switch id="batch" checked={batchMode} onCheckedChange={(v) => { setBatchMode(v); reset(); setBatchFiles([]); }} />
+          <Label htmlFor="batch" className="text-sm cursor-pointer">Batch mode (multiple files)</Label>
+        </div>
+        {loading && (
+          <span className="flex items-center gap-1 text-xs text-violet-500">
+            <Cpu className="w-3 h-3 animate-pulse" /> Loading FFmpeg...
+          </span>
+        )}
+      </div>
+
+      {/* Drop zone */}
+      {(!activeFile || batchMode) && (
+        <div className="relative">
+          <DropZone onFile={handleFile} />
+          {batchMode && (
+            <label className="absolute bottom-3 right-3 cursor-pointer">
+              <input type="file" accept="video/*" multiple className="hidden" onChange={handleMultiFile} />
+              <span className="flex items-center gap-1 text-xs text-violet-600 hover:underline">
+                <Plus className="w-3 h-3" /> Add more
+              </span>
+            </label>
+          )}
+        </div>
+      )}
+
+      {/* Single file preview */}
+      {activeFile && !batchMode && (
         <div className="space-y-5">
-          {/* Preview */}
           <div className="relative rounded-2xl overflow-hidden bg-black shadow-xl">
             <video
               ref={videoRef}
               src={previewUrl}
               controls
-              className="w-full max-h-72 object-contain"
+              className="w-full max-h-64 object-contain"
+              onLoadedMetadata={() => {
+                const d = videoRef.current?.duration || 0;
+                setDuration(d);
+                setTrimEnd(d);
+              }}
             />
-            <button
-              onClick={reset}
-              className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1 transition"
-              aria-label="Remove file"
-            >
+            <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1">
               <X className="w-4 h-4" />
             </button>
           </div>
-
-          {/* File info */}
-          <div className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+          <div className="flex items-center gap-2 text-sm text-gray-500">
             <FileVideo className="w-4 h-4 shrink-0" />
-            <span className="truncate font-medium">{file.name}</span>
-            <span className="shrink-0 text-gray-400">({formatBytes(file.size)})</span>
+            <span className="truncate font-medium text-gray-700 dark:text-gray-200">{activeFile.name}</span>
+            <span className="shrink-0">({formatBytes(activeFile.size)})</span>
           </div>
+        </div>
+      )}
 
-          {/* Format selector */}
-          <div>
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Choose output format</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-              {FORMAT_OPTIONS.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => setFormat(opt.value)}
-                  className={`rounded-xl border-2 px-3 py-3 text-left transition-all ${
-                    format === opt.value
-                      ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300"
-                      : "border-gray-200 dark:border-gray-700 hover:border-violet-300 text-gray-700 dark:text-gray-300"
-                  }`}
-                >
-                  <p className="font-semibold text-sm">{opt.label}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{opt.desc}</p>
-                </button>
-              ))}
-            </div>
+      {/* Conversion settings */}
+      {(activeFile || batchMode) && (
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1">
+            <Label className="text-xs text-gray-500">Format</Label>
+            <Select value={format} onValueChange={(v) => setFormat(v as OutputFormat)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                {FORMAT_OPTIONS.map((o) => <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>)}
+              </SelectContent>
+            </Select>
           </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-gray-500">Resolution</Label>
+            <Select value={resolution} onValueChange={(v) => setResolution(v as Resolution)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="original">Original</SelectItem>
+                <SelectItem value="1080p">1080p (Full HD)</SelectItem>
+                <SelectItem value="720p">720p (HD)</SelectItem>
+                <SelectItem value="480p">480p (SD)</SelectItem>
+                <SelectItem value="4k">4K (2160p)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs text-gray-500">Quality / Compression</Label>
+            <Select value={quality} onValueChange={(v) => setQuality(v as Quality)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="high">High (larger file)</SelectItem>
+                <SelectItem value="medium">Medium (balanced)</SelectItem>
+                <SelectItem value="low">Low (smaller file)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
-          {/* Convert button */}
-          {!result && (
-            <Button
-              onClick={handleConvert}
-              disabled={processing}
-              className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11 text-base"
-            >
-              {processing ? (
-                <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Processing...</>
-              ) : (
-                "Convert Now"
-              )}
-            </Button>
+      {/* Trim control — single file only */}
+      {activeFile && !batchMode && duration > 0 && (
+        <div className="space-y-3 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+          <div className="flex items-center gap-2">
+            <Switch id="trim" checked={trimEnabled} onCheckedChange={setTrimEnabled} />
+            <Label htmlFor="trim" className="flex items-center gap-1 text-sm cursor-pointer">
+              <Scissors className="w-3.5 h-3.5" /> Trim video
+            </Label>
+          </div>
+          {trimEnabled && (
+            <TrimControl duration={duration} start={trimStart} end={trimEnd} onChange={(s, e) => { setTrimStart(s); setTrimEnd(e); }} />
           )}
+        </div>
+      )}
 
-          {/* Progress */}
-          {processing && (
-            <div className="space-y-1">
-              <Progress value={progress} className="h-2" />
-              <p className="text-xs text-gray-500 text-right">{progress}%</p>
-            </div>
-          )}
+      {/* Batch queue */}
+      {batchMode && batchFiles.length > 0 && (
+        <BatchQueue files={batchFiles} onRemove={(id) => setBatchFiles((prev) => prev.filter((f) => f.id !== id))} />
+      )}
 
-          {/* Result */}
-          {result && (
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-green-600 dark:text-green-400">Done! Your file is ready.</p>
-              <DownloadCard
-                url={result.url}
-                filename={result.filename}
-                label={result.label}
-                size={result.size}
-              />
-              <Button variant="outline" onClick={reset} className="w-full">
-                Convert another file
-              </Button>
-            </div>
-          )}
+      {/* Action buttons */}
+      {!batchMode && activeFile && !result && (
+        <Button onClick={handleConvert} disabled={processing} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11 text-base">
+          {processing ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" /> Processing...</> : "Convert Now"}
+        </Button>
+      )}
+      {batchMode && batchFiles.some((f) => f.status === "pending") && (
+        <Button onClick={handleBatchConvert} className="w-full bg-violet-600 hover:bg-violet-700 text-white h-11 text-base">
+          Convert All ({batchFiles.filter((f) => f.status === "pending").length} files)
+        </Button>
+      )}
+
+      {/* Progress */}
+      {processing && (
+        <div className="space-y-1">
+          <Progress value={progress} className="h-2" />
+          <p className="text-xs text-gray-500 text-right">{progress}%</p>
+        </div>
+      )}
+
+      {/* Result */}
+      {result && (
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-green-600 dark:text-green-400">Done! Your file is ready.</p>
+          <DownloadCard url={result.url} filename={result.filename} label={result.filename} size={result.size} />
+          <Button variant="outline" onClick={reset} className="w-full">Convert another file</Button>
         </div>
       )}
     </div>

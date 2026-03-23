@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      // SPA redirect: preserve path and redirect to index
+      const path = window.location.pathname;
+      const search = window.location.search;
+      const hash = window.location.hash;
+      const base = '/MianConvert';
+      const redirect = base + '/?p=' + encodeURIComponent(path.replace(base, '') + search) + hash;
+      window.location.replace(redirect);
+    </script>
+  </head>
+  <body></body>
+</html>

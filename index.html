@@ -8,19 +8,22 @@
     <meta name="author" content="MianConvert" />
     <meta property="og:title" content="MianConvert" />
     <meta property="og:description" content="Free browser-based video converter" />
-    <meta property="og:image" content="/MianConvert/og-image.png" />
-    <!-- Required for FFmpeg WASM SharedArrayBuffer support on GitHub Pages -->
     <script>
-      if (!crossOriginIsolated) {
-        // Service worker based COOP/COEP shim for hosts that don't support custom headers
-        if ('serviceWorker' in navigator) {
-          navigator.serviceWorker.register('/MianConvert/sw-coi.js').then(() => {
-            if (!sessionStorage.getItem('coi-reloaded')) {
-              sessionStorage.setItem('coi-reloaded', '1');
-              location.reload();
-            }
-          });
+      // Handle SPA redirect from 404.html
+      (function() {
+        var p = window.location.search.match(/[?&]p=([^&]*)/);
+        if (p) {
+          window.history.replaceState(null, null, decodeURIComponent(p[1]) || '/');
         }
+      })();
+      // COI service worker for FFmpeg SharedArrayBuffer
+      if (!crossOriginIsolated && 'serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw-coi.js').then(function() {
+          if (!sessionStorage.getItem('coi-reloaded')) {
+            sessionStorage.setItem('coi-reloaded', '1');
+            location.reload();
+          }
+        });
       }
     </script>
   </head>

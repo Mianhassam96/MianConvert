@@ -1,24 +1,16 @@
 MianConvert
 
 MianConvert is a powerful and user-friendly web application designed to simplify video processing. With this tool, users can:
-
-    Upload videos easily.
+Upload videos easily.
     Generate sharable links for uploaded videos.
     Download videos in various formats:
         Original.
         Audio-only.
         No-audio (silent video).
 
-Features
-
-    Fast Processing: Built with Vite for optimized performance.
-    Modern UI: Styled using Tailwind CSS and shadcn-ui for a sleek interface.
-    Flexibility: Supports multiple download formats.
-    Strong Type Safety: Powered by TypeScript.
-
-Tech Stack
+Live Preview: https://mianhassam96.github.io/MianConvert/
  
-    Vite: For blazing-fast builds and a great developer experience.
+Vite: For blazing-fast builds and a great developer experience.
     React: For building an interactive UI.
     shadcn-ui: To enhance the design and functionality.
     Tailwind CSS: For clean and responsive styling.
@@ -28,7 +20,7 @@ Installation
 
 Follow these steps to run the project locally:
 
-    Clone the repository:
+Clone the repository:
 
 git clone https://github.com/Mianhassam96/Video-Processor.git  
 
@@ -42,7 +34,7 @@ npm install
 
 Start the development server:
 
-    npm run dev  
+npm run dev  
 
 Contribution
 

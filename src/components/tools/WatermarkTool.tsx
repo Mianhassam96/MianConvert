@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
-import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
+import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
@@ -38,6 +38,8 @@ const WatermarkTool = () => {
   const { ffmpeg, loaded, load } = useFFmpeg();
 
   const handleVideo = (f: File) => {
+    const err = validateVideoFile(f);
+    if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
   };

@@ -21,3 +21,27 @@ export const triggerDownload = (url: string, filename: string) => {
   a.download = filename;
   a.click();
 };
+
+/** Validate file before processing */
+export const validateVideoFile = (file: File): string | null => {
+  const MAX_SIZE = 2 * 1024 * 1024 * 1024; // 2 GB
+  const ALLOWED = ["video/mp4","video/webm","video/quicktime","video/x-msvideo","video/x-matroska","video/avi","video/mov","video/mkv","video/ogg","video/3gpp","video/mpeg"];
+  if (file.size > MAX_SIZE) return `File too large (${formatBytes(file.size)}). Max 2 GB.`;
+  if (!file.type.startsWith("video/") && !ALLOWED.includes(file.type)) return "Please upload a valid video file.";
+  return null;
+};
+
+/** Warn if file is large */
+export const getFileSizeWarning = (file: File): string | null => {
+  const MB = file.size / (1024 * 1024);
+  if (MB > 500) return `Large file (${formatBytes(file.size)}) — processing may take a while on mobile.`;
+  if (MB > 200) return `File is ${formatBytes(file.size)} — may take a few minutes.`;
+  return null;
+};
+
+/** Check if video likely has audio (heuristic by extension/type) */
+export const likelyHasAudio = (file: File): boolean => {
+  const noAudioExts = [".gif"];
+  const name = file.name.toLowerCase();
+  return !noAudioExts.some(e => name.endsWith(e));
+};

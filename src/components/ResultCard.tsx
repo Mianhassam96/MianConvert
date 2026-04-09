@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, RefreshCw, Copy, CheckCheck, FileCheck2 } from "lucide-react";
+import { Download, RefreshCw, Share2, CheckCheck, FileCheck2 } from "lucide-react";
 import { useState } from "react";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 
@@ -13,18 +13,31 @@ interface ResultCardProps {
 }
 
 const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCardProps) => {
-  const [copied, setCopied] = useState(false);
+  const [shared, setShared] = useState(false);
 
   const download = () => {
     const a = document.createElement("a");
     a.href = url; a.download = filename; a.click();
   };
 
-  const copy = () => {
-    navigator.clipboard.writeText(url).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2200);
-    });
+  // Share via Web Share API if available, otherwise download again
+  const share = async () => {
+    if (navigator.share) {
+      try {
+        const res = await fetch(url);
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: blob.type });
+        await navigator.share({ files: [file], title: filename });
+        setShared(true);
+        setTimeout(() => setShared(false), 2200);
+      } catch {
+        // User cancelled or not supported — fallback to download
+        download();
+      }
+    } else {
+      // Fallback: trigger download
+      download();
+    }
   };
 
   return (
@@ -61,7 +74,7 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
       {/* Body */}
       <div className="bg-white dark:bg-gray-900/80 p-4 sm:p-5 space-y-4">
 
-        {/* GIF preview */}
+        {/* GIF / image preview */}
         {preview && (
           <motion.img src={preview} alt="preview"
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
@@ -77,13 +90,14 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
             <p className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{filename}</p>
             <p className="text-[10px] sm:text-xs text-gray-400">{size}</p>
           </div>
-          {/* Copy */}
-          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={copy}
+          {/* Share / Web Share API */}
+          <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={share}
+            title={navigator.share ? "Share file" : "Download again"}
             className="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-violet-300 dark:hover:border-violet-600 transition-colors shrink-0">
             <AnimatePresence mode="wait">
-              {copied
+              {shared
                 ? <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }}><CheckCheck className="w-3.5 h-3.5 text-green-500" /></motion.span>
-                : <motion.span key="copy" initial={{ scale: 0 }} animate={{ scale: 1 }}><Copy className="w-3.5 h-3.5 text-gray-400" /></motion.span>
+                : <motion.span key="share" initial={{ scale: 0 }} animate={{ scale: 1 }}><Share2 className="w-3.5 h-3.5 text-gray-400" /></motion.span>
               }
             </AnimatePresence>
           </motion.button>
@@ -91,14 +105,14 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={download}
             className="flex items-center gap-1.5 btn-gradient ripple-btn text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-lg shadow-md shadow-violet-500/25 shrink-0">
             <Download className="w-3.5 h-3.5" />
-            <span className="hidden xs:inline">Download</span>
+            <span>Download</span>
           </motion.button>
         </div>
 
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2">
           <AnimatedButton variant="outline" size="sm" onClick={onAgain} className="w-full text-xs sm:text-sm">
-            <RefreshCw className="w-3.5 h-3.5" /> Convert again
+            <RefreshCw className="w-3.5 h-3.5" /> Process again
           </AnimatedButton>
           <AnimatedButton variant="ghost" size="sm" onClick={onReset} className="w-full text-xs sm:text-sm">
             Upload new file

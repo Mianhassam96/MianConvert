@@ -14,6 +14,9 @@ import GifTool from "./tools/GifTool";
 import ClipTool from "./tools/ClipTool";
 import FiltersTool from "./tools/FiltersTool";
 import TextOverlayTool from "./tools/TextOverlayTool";
+import ReverseTool from "./tools/ReverseTool";
+import CropTool from "./tools/CropTool";
+import AudioTool from "./tools/AudioTool";
 
 const TABS = [
   { id: "convert",   icon: "🔄", label: "Convert",   desc: "MP4, AVI, MOV, MKV, MP3, WAV" },
@@ -26,6 +29,9 @@ const TABS = [
   { id: "watermark", icon: "🖼",  label: "Watermark",  desc: "Add logo" },
   { id: "speed",     icon: "⚡", label: "Speed",      desc: "Slow / fast motion" },
   { id: "rotate",    icon: "↻",  label: "Rotate",     desc: "Rotate & flip" },
+  { id: "crop",      icon: "⬛", label: "Crop",       desc: "Crop to any ratio" },
+  { id: "reverse",   icon: "⏪", label: "Reverse",    desc: "Reverse video & audio" },
+  { id: "audio",     icon: "🎵", label: "Audio",      desc: "Volume, fade in/out" },
   { id: "frames",    icon: "📸", label: "Frames",     desc: "Extract snapshots" },
   { id: "gif",       icon: "🎞", label: "GIF",        desc: "Video to GIF" },
 ] as const;
@@ -43,6 +49,9 @@ const TOOL_MAP: Record<TabId, React.ReactNode> = {
   watermark: <WatermarkTool />,
   speed:     <SpeedTool />,
   rotate:    <RotateTool />,
+  crop:      <CropTool />,
+  reverse:   <ReverseTool />,
+  audio:     <AudioTool />,
   frames:    <FramesTool />,
   gif:       <GifTool />,
 };

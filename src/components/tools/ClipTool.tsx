@@ -4,7 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
-import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
+import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
 import TrimControl from "@/components/TrimControl";
 import ResultCard from "@/components/ResultCard";
@@ -31,6 +31,8 @@ const ClipTool = () => {
   const { ffmpeg, loaded, load } = useFFmpeg();
 
   const handleVideo = (f: File) => {
+    const err = validateVideoFile(f);
+    if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
   };

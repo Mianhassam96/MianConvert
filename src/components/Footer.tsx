@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Zap, Github, Globe, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const TOOLS = ["Convert", "Compress", "Mute", "Clip", "Filters", "Text", "Merge", "Watermark", "Speed", "Rotate", "Frames", "GIF"];
+const TOOLS = ["Convert", "Compress", "Mute", "Clip", "Filters", "Text", "Merge", "Watermark", "Speed", "Rotate", "Crop", "Reverse", "Audio", "Frames", "GIF"];
 
 const Footer = () => (
   <footer className="bg-gradient-to-b from-gray-950 to-gray-950 border-t border-violet-900/30 text-gray-400 mt-auto">

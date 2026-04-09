@@ -5,14 +5,16 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
-import { formatBytes, readOutputBlob } from "@/lib/ffmpeg-run";
+import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } from "@/lib/ffmpeg-run";
 import { detectDevice, recommendedFormat, recommendedResolution } from "@/lib/device";
+import { CONVERT_PRESETS } from "@/lib/presets";
 import DropZone from "@/components/DropZone";
 import TrimControl from "@/components/TrimControl";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { FileVideo, X, Scissors, RotateCcw, FlipHorizontal } from "lucide-react";
+import { FileVideo, X, Scissors, RotateCcw, FlipHorizontal, AlertTriangle, Zap } from "lucide-react";
+import { motion } from "framer-motion";
 
 type Fmt = "mp4" | "webm" | "mp3" | "wav" | "avi" | "mov" | "mkv" | "muted";
 type Res = "1080p" | "720p" | "480p" | "original";
@@ -63,6 +65,9 @@ const ConvertTool = () => {
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [autoDetectMsg, setAutoDetectMsg] = useState<string | null>(null);
+  const [activePreset, setActivePreset] = useState<string>("original");
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
@@ -74,15 +79,36 @@ const ConvertTool = () => {
   }, []);
 
   const handleFile = (f: File) => {
+    const err = validateVideoFile(f);
+    if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(f); setPreviewUrl(URL.createObjectURL(f));
     setResult(null); setProgress(0); setTrimEnabled(false); setDone(false);
+    setWarning(getFileSizeWarning(f));
+
+    // Auto-detect suggestions
+    const sizeMB = f.size / (1024 * 1024);
+    const ext = f.name.split(".").pop()?.toLowerCase();
+    const msgs: string[] = [];
+    if (ext === "mov" || ext === "avi") msgs.push(`Detected ${ext.toUpperCase()} — MP4 recommended for best compatibility.`);
+    if (sizeMB > 200) msgs.push(`Large file (${formatBytes(f.size)}) — consider Compress tool first.`);
+    setAutoDetectMsg(msgs.length ? msgs.join(" ") : null);
+  };
+
+  const applyPreset = (presetId: string) => {
+    const p = CONVERT_PRESETS.find(x => x.id === presetId);
+    if (!p) return;
+    setActivePreset(presetId);
+    setFmt(p.fmt as Fmt);
+    setRes(p.res as Res);
+    setQuality(p.quality as Quality);
   };
 
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
     setFile(null); setPreviewUrl(""); setResult(null); setProgress(0); setRotate("none"); setDone(false);
+    setWarning(null); setAutoDetectMsg(null); setActivePreset("original");
   };
 
   const handleConvert = async () => {
@@ -153,15 +179,44 @@ const ConvertTool = () => {
             <span className="truncate font-medium text-gray-700 dark:text-gray-200">{file.name}</span>
             <span className="shrink-0 text-xs">({formatBytes(file.size)})</span>
           </div>
+          {warning && (
+            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{warning}
+            </div>
+          )}
+          {autoDetectMsg && (
+            <div className="flex items-center gap-2 text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg px-3 py-2">
+              <Zap className="w-3.5 h-3.5 shrink-0" />{autoDetectMsg}
+            </div>
+          )}
         </div>
       )}
 
       {file && !result && (
         <>
+          {/* Smart Presets */}
+          <div className="space-y-2">
+            <Label className="text-xs text-gray-500 uppercase tracking-wide">Quick Presets</Label>
+            <div className="flex flex-wrap gap-2">
+              {CONVERT_PRESETS.map(p => (
+                <motion.button key={p.id} onClick={() => applyPreset(p.id)}
+                  whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                  title={p.description}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                    activePreset === p.id
+                      ? "bg-violet-600 text-white border-violet-600 shadow-md shadow-violet-500/25"
+                      : "border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-violet-400 bg-white dark:bg-gray-900"
+                  }`}>
+                  <span>{p.icon}</span>{p.label}
+                </motion.button>
+              ))}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="space-y-1">
               <Label className="text-xs text-gray-500">Output Format</Label>
-              <Select value={fmt} onValueChange={v => setFmt(v as Fmt)}>
+              <Select value={fmt} onValueChange={v => { setFmt(v as Fmt); setActivePreset("original"); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   {FORMAT_GROUPS.map(g => (
@@ -176,7 +231,7 @@ const ConvertTool = () => {
             {!isAudio(fmt) && (
               <div className="space-y-1">
                 <Label className="text-xs text-gray-500">Resolution</Label>
-                <Select value={res} onValueChange={v => setRes(v as Res)}>
+                <Select value={res} onValueChange={v => { setRes(v as Res); setActivePreset("original"); }}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="original">Original</SelectItem>
@@ -189,7 +244,7 @@ const ConvertTool = () => {
             )}
             <div className="space-y-1">
               <Label className="text-xs text-gray-500">Quality</Label>
-              <Select value={quality} onValueChange={v => setQuality(v as Quality)}>
+              <Select value={quality} onValueChange={v => { setQuality(v as Quality); setActivePreset("original"); }}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="high">High quality</SelectItem>

@@ -157,21 +157,21 @@ const AudioStudioTool = () => {
         <DropZone onFile={handleFile} accept="video/*,audio/*" label="Drop video or audio file" />
       ) : (
         <div className="space-y-3">
-          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
-            {file.type.startsWith("audio/") ? (
-              <div className="flex flex-col items-center justify-center py-8 gap-3 bg-gradient-to-br from-violet-900/40 to-fuchsia-900/40">
-                <Music className="w-10 h-10 text-violet-400" />
+          {file.type.startsWith("audio/") ? (
+            <div className="relative rounded-2xl overflow-hidden bg-gradient-to-br from-violet-900/40 to-fuchsia-900/40 border border-violet-500/20 shadow-xl">
+              <div className="flex flex-col items-center justify-center py-10 gap-3">
+                <Music className="w-12 h-12 text-violet-400" />
                 <audio src={previewUrl} controls className="w-full max-w-xs"
                   onLoadedMetadata={e => setDuration((e.target as HTMLAudioElement).duration)} />
               </div>
-            ) : (
-              <video ref={videoRef} src={previewUrl} controls className="w-full max-h-48 object-contain"
-                onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} />
-            )}
-            <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
+              <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-red-500/80 text-white rounded-full p-1.5 transition-colors">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ) : (
+            <VideoPreview ref={videoRef} file={file} previewUrl={previewUrl} onReset={reset}
+              onLoadedMetadata={() => setDuration(videoRef.current?.duration || 0)} />
+          )}
         </div>
       )}
 

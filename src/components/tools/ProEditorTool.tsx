@@ -9,7 +9,8 @@ import DropZone from "@/components/DropZone";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { X, AlertTriangle, Sliders, Film, Crop } from "lucide-react";
+import { Sliders, Film, Crop } from "lucide-react";
+import VideoPreview from "@/components/VideoPreview";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -162,30 +163,19 @@ const ProEditorTool = () => {
       {!video ? (
         <DropZone onFile={handleVideo} label="Drop video to edit" />
       ) : (
-        <div className="space-y-3">
-          {/* Live preview */}
-          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
-            <video ref={videoRef} src={previewUrl} controls
-              className="w-full max-h-56 object-contain transition-all duration-300"
-              style={previewStyle}
-              onLoadedMetadata={() => {
-                const v = videoRef.current;
-                if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
-              }} />
-            <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5 transition-colors">
-              <X className="w-3.5 h-3.5" />
-            </button>
-            <div className="absolute bottom-2 left-2 flex items-center gap-1.5">
-              <span className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">Live preview</span>
-              {vidW > 0 && <span className="bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">{vidW}×{vidH}</span>}
-            </div>
-          </div>
-          {warning && (
-            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{warning}
-            </div>
-          )}
-        </div>
+        <VideoPreview
+          ref={videoRef}
+          file={video}
+          previewUrl={previewUrl}
+          onReset={reset}
+          warning={warning}
+          badge={vidW > 0 ? `Live preview · ${vidW}×${vidH}` : "Live preview"}
+          style={previewStyle}
+          onLoadedMetadata={() => {
+            const v = videoRef.current;
+            if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
+          }}
+        />
       )}
 
       {video && !result && (

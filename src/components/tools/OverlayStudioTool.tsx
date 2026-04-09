@@ -11,7 +11,8 @@ import DropZone from "@/components/DropZone";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { X, Plus, Trash2, ImagePlus, Type } from "lucide-react";
+import { Plus, Trash2, ImagePlus, Type } from "lucide-react";
+import VideoPreview from "@/components/VideoPreview";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -183,12 +184,11 @@ const OverlayStudioTool = () => {
       {!video ? (
         <DropZone onFile={handleVideo} label="Drop video for overlay studio" />
       ) : (
-        <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
-          <video src={previewUrl} controls className="w-full max-h-52 object-contain" />
-          <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5">
-            <X className="w-3.5 h-3.5" />
-          </button>
-        </div>
+        <VideoPreview
+          file={video}
+          previewUrl={previewUrl}
+          onReset={reset}
+        />
       )}
 
       {video && !result && (

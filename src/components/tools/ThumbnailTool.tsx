@@ -8,6 +8,7 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { readOutputBlob, validateVideoFile } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
+import VideoPreview from "@/components/VideoPreview";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { X, Download, Camera, Type } from "lucide-react";
@@ -104,28 +105,14 @@ const ThumbnailTool = () => {
 
   return (
     <div className="space-y-4">
-      {!video ? (
-        <DropZone onFile={handleVideo} label="Drop video to generate thumbnail" />
-      ) : (
-        <div className="space-y-3">
-          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
-            <video ref={videoRef} src={previewUrl} controls className="w-full max-h-52 object-contain"
-              onLoadedMetadata={() => {
-                const d = videoRef.current?.duration || 0;
-                setDuration(d);
-                setTimestamp(Math.min(1, d));
-              }}
-              onTimeUpdate={() => {
-                if (videoRef.current) setTimestamp(videoRef.current.currentTime);
-              }} />
-            <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5">
-              <X className="w-3.5 h-3.5" />
-            </button>
-            <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-              Scrub to select frame
-            </div>
-          </div>
-        </div>
+      {!video ? <DropZone onFile={handleVideo} /> : (
+        <VideoPreview ref={videoRef} file={video} previewUrl={previewUrl} onReset={reset}
+          badge="Scrub to select frame"
+          onLoadedMetadata={() => {
+            const d = videoRef.current?.duration || 0;
+            setDuration(d); setTimestamp(Math.min(1, d));
+          }}
+          onTimeUpdate={() => { if (videoRef.current) setTimestamp(videoRef.current.currentTime); }} />
       )}
 
       {video && (

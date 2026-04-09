@@ -10,7 +10,8 @@ import DropZone from "@/components/DropZone";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { X, Plus, Trash2, Info } from "lucide-react";
+import { Plus, Trash2, Info } from "lucide-react";
+import VideoPreview from "@/components/VideoPreview";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -109,23 +110,17 @@ const CleanVideoTool = () => {
       {!video ? (
         <DropZone onFile={handleVideo} label="Drop video to remove logo/text" />
       ) : (
-        <div className="space-y-3">
-          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
-            <video ref={videoRef} src={previewUrl} controls className="w-full max-h-52 object-contain"
-              onLoadedMetadata={() => {
-                const v = videoRef.current;
-                if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
-              }} />
-            <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5">
-              <X className="w-3.5 h-3.5" />
-            </button>
-            {vidW > 0 && (
-              <div className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded-full">
-                {vidW}×{vidH}
-              </div>
-            )}
-          </div>
-        </div>
+        <VideoPreview
+          ref={videoRef}
+          file={video}
+          previewUrl={previewUrl}
+          onReset={reset}
+          badge={vidW > 0 ? `${vidW}×${vidH}` : undefined}
+          onLoadedMetadata={() => {
+            const v = videoRef.current;
+            if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
+          }}
+        />
       )}
 
       {video && !result && (

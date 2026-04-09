@@ -5,7 +5,7 @@ import { Zap, Code2, Heart, Github, Shield, Globe } from "lucide-react";
 import { fadeUp, stagger, scaleIn } from "@/lib/motion";
 
 const FEATURES = [
-  { icon: "🔄", title: "15 Powerful Tools", desc: "Convert, compress, mute, clip, filter, add text, merge, watermark, speed, rotate, crop, reverse, audio, extract frames, and create GIFs." },
+  { icon: "🔄", title: "12 Powerful Tools", desc: "Pro Editor, Timeline, Overlay Studio, Clean Video, Convert, Compress, Resize, GIF Maker, Audio Studio, Merge, Subtitle, and Thumbnail." },
   { icon: "🔒", title: "100% Private", desc: "Nothing leaves your device. All processing happens in your browser using WebAssembly — no servers, no uploads." },
   { icon: "⚡", title: "FFmpeg Powered", desc: "Built on FFmpeg compiled to WebAssembly. The same engine used by professionals, running entirely client-side." },
   { icon: "🆓", title: "Completely Free", desc: "No accounts, no subscriptions, no limits. MianConvert is and always will be free." },

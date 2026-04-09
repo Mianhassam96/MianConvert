@@ -7,7 +7,7 @@ import { fadeUp, stagger } from "@/lib/motion";
 import { Shield, Zap, Globe } from "lucide-react";
 
 const STATS = [
-  { value: "15", label: "Tools", icon: "🛠" },
+  { value: "12", label: "Tools", icon: "🛠" },
   { value: "10+", label: "Formats", icon: "🎞" },
   { value: "0", label: "Uploads", icon: "🔒" },
   { value: "100%", label: "Private", icon: "✅" },
@@ -80,7 +80,7 @@ const Index = () => (
           {/* Subtext */}
           <motion.p variants={fadeUp}
             className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed px-2">
-            15 powerful tools — convert, compress, mute, clip, filter, text, merge, crop, reverse, audio and more.
+            12 powerful tools — Pro Editor, Timeline, Overlay Studio, Convert, Compress, Resize, GIF, Audio Studio, Merge, Subtitle, Thumbnail and more.
             Zero uploads. Everything stays on your device.
           </motion.p>
 

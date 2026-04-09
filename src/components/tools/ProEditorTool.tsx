@@ -11,6 +11,7 @@ import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Sliders, Film, Crop } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -56,6 +57,7 @@ const ProEditorTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -82,7 +84,7 @@ const ProEditorTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setWarning(null);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setWarning(null); setError(null);
     setFilter("none"); setBrightness(100); setContrast(100); setSaturation(100);
     setExposure(0); setTemperature(0); setGamma(100); setAspect("none");
   };
@@ -95,7 +97,7 @@ const ProEditorTool = () => {
   const handleProcess = async () => {
     if (!video) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null); setDone(false);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
@@ -146,7 +148,8 @@ const ProEditorTool = () => {
       setResult({ url, filename: `${base}-edited.mp4`, size: formatBytes(blob.size) });
       toast({ title: "✓ Exported!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
@@ -274,6 +277,7 @@ const ProEditorTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Applying effects…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

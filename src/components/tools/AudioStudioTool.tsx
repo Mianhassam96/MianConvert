@@ -12,6 +12,7 @@ import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { X, Music, VolumeX, Volume2 } from "lucide-react";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +32,7 @@ const AudioStudioTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -46,7 +48,7 @@ const AudioStudioTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setFile(null); setPreviewUrl(""); setResult(null); setDone(false);
+    setFile(null); setPreviewUrl(""); setResult(null); setDone(false); setError(null);
   };
 
   const handleProcess = async () => {
@@ -138,7 +140,8 @@ const AudioStudioTool = () => {
       }
     } catch (e) {
       if (fakeTimer) clearInterval(fakeTimer);
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       setProcessing(false);
     }
@@ -253,6 +256,7 @@ const AudioStudioTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Processing audio…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

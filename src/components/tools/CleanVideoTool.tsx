@@ -12,6 +12,7 @@ import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Plus, Trash2, Info } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -33,6 +34,7 @@ const CleanVideoTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -48,7 +50,7 @@ const CleanVideoTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setError(null);
   };
 
   const updateRegion = (id: string, patch: Partial<Region>) =>
@@ -63,7 +65,7 @@ const CleanVideoTool = () => {
   const handleProcess = async () => {
     if (!video || !regions.length) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
-    setProcessing(true); setProgress(0); setResult(null); setDone(false);
+    setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
@@ -99,7 +101,8 @@ const CleanVideoTool = () => {
       setResult({ url, filename: `${base}-cleaned.mp4`, size: formatBytes(blob.size) });
       toast({ title: "✓ Cleaned!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
@@ -195,6 +198,7 @@ const CleanVideoTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Removing logo/text…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

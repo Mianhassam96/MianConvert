@@ -13,6 +13,7 @@ import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Plus, Trash2, ImagePlus, Type } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +59,7 @@ const OverlayStudioTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
@@ -73,7 +75,7 @@ const OverlayStudioTool = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
     layers.forEach(l => { if (l.type === "image" && l.previewUrl) URL.revokeObjectURL(l.previewUrl); });
-    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setError(null);
     setLayers([defaultText()]);
   };
 
@@ -173,7 +175,8 @@ const OverlayStudioTool = () => {
       setResult({ url, filename: `${base}-overlay.mp4`, size: formatBytes(blob.size) });
       toast({ title: "✓ Done!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
@@ -322,6 +325,7 @@ const OverlayStudioTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Rendering overlays…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

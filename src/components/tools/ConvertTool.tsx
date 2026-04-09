@@ -15,6 +15,7 @@ import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Scissors, RotateCcw, FlipHorizontal } from "lucide-react";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 
 type Fmt = "mp4" | "webm" | "mp3" | "wav" | "avi" | "mov" | "mkv" | "muted";
@@ -65,6 +66,7 @@ const ConvertTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [autoDetectMsg, setAutoDetectMsg] = useState<string | null>(null);
@@ -108,7 +110,7 @@ const ConvertTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setFile(null); setPreviewUrl(""); setResult(null); setProgress(0); setRotate("none"); setDone(false);
+    setFile(null); setPreviewUrl(""); setResult(null); setProgress(0); setRotate("none"); setDone(false); setError(null);
     setWarning(null); setAutoDetectMsg(null); setActivePreset("original");
   };
 
@@ -156,7 +158,8 @@ const ConvertTool = () => {
       setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size) });
       toast({ title: "✓ Done!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Conversion failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Conversion failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
@@ -273,6 +276,7 @@ const ConvertTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Processing with FFmpeg…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

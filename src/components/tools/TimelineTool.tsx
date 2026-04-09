@@ -12,6 +12,7 @@ import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Scissors, Plus, Trash2 } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +38,7 @@ const TimelineTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,7 +74,7 @@ const TimelineTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setWarning(null);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setWarning(null); setError(null);
     setSegments([]); setSpeed(1); setLoop(false);
   };
 
@@ -142,7 +144,8 @@ const TimelineTool = () => {
       setResult({ url, filename: `${base}-timeline.mp4`, size: formatBytes(blob.size) });
       toast({ title: "✓ Done!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
@@ -270,6 +273,7 @@ const TimelineTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Processing timeline…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

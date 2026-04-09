@@ -13,6 +13,7 @@ import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { X, AlertTriangle } from "lucide-react";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -51,6 +52,7 @@ const ResizeTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -68,7 +70,7 @@ const ResizeTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (result) URL.revokeObjectURL(result.url);
-    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setWarning(null);
+    setVideo(null); setPreviewUrl(""); setResult(null); setDone(false); setWarning(null); setError(null);
   };
 
   const getTargetDimensions = (): { w: number; h: number } | null => {
@@ -130,7 +132,8 @@ const ResizeTool = () => {
       setResult({ url, filename: `${base}-resized.mp4`, size: formatBytes(blob.size) });
       toast({ title: "✓ Resized!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);
     }
@@ -219,6 +222,7 @@ const ResizeTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Resizing…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
         </>
       )}
 

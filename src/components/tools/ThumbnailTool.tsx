@@ -12,6 +12,7 @@ import VideoPreview from "@/components/VideoPreview";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { X, Download, Camera, Type } from "lucide-react";
+import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 
 type ExportSize = "1280x720" | "1920x1080" | "800x450" | "original";
@@ -30,6 +31,7 @@ const ThumbnailTool = () => {
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [thumbnail, setThumbnail] = useState<{ url: string; name: string } | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const { toast } = useToast();
@@ -45,7 +47,7 @@ const ThumbnailTool = () => {
   const reset = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     if (thumbnail) URL.revokeObjectURL(thumbnail.url);
-    setVideo(null); setPreviewUrl(""); setThumbnail(null); setDone(false);
+    setVideo(null); setPreviewUrl(""); setThumbnail(null); setDone(false); setError(null);
   };
 
   const handleExtract = async () => {
@@ -91,7 +93,8 @@ const ThumbnailTool = () => {
       setThumbnail({ url, name: `${base}-thumbnail.jpg` });
       toast({ title: "✓ Thumbnail extracted!" });
     } catch (e) {
-      toast({ variant: "destructive", title: "Failed", description: String(e) });
+      const msg = String(e); setError(msg);
+      toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       setProcessing(false);
     }
@@ -192,6 +195,7 @@ const ThumbnailTool = () => {
           </AnimatedButton>
 
           {processing && <AnimatedProgress value={progress} label="Extracting frame…" done={done} />}
+          {error && <ErrorRecovery error={error} onRetry={() => setError(null)} />}
 
           {/* Thumbnail preview */}
           {thumbnail && (

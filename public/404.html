@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <title>MianConvert</title>
     <script>
-      // SPA redirect: preserve path and redirect to index
-      const path = window.location.pathname;
+      // SPA redirect for GitHub Pages — preserves path on hard refresh / direct URL
+      const base = '/MianConvert';
+      const path = window.location.pathname.replace(base, '') || '/';
       const search = window.location.search;
       const hash = window.location.hash;
-      const base = '/MianConvert';
-      const redirect = base + '/?p=' + encodeURIComponent(path.replace(base, '') + search) + hash;
-      window.location.replace(redirect);
+      window.location.replace(base + '/?p=' + encodeURIComponent(path + search) + hash);
     </script>
   </head>
   <body></body>

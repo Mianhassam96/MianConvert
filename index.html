@@ -3,12 +3,42 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/MianConvert/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/MianConvert/favicon.ico" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>MianConvert – Browser Video Toolkit</title>
-    <meta name="description" content="Convert, trim, merge, add filters, text overlays and more — 100% in your browser. Free, private, no uploads." />
+
+    <!-- Primary meta -->
+    <title>MianConvert – Free Browser Video Toolkit</title>
+    <meta name="description" content="12 professional video tools — convert, compress, edit, add subtitles, generate thumbnails and more. 100% free, no uploads, runs entirely in your browser." />
     <meta name="author" content="MultiMian" />
-    <meta property="og:title" content="MianConvert" />
-    <meta property="og:description" content="Free browser-based video toolkit by MultiMian" />
+    <meta name="keywords" content="video converter, video compressor, video editor, browser video tool, ffmpeg wasm, free video tool, no upload video editor" />
+
+    <!-- Open Graph -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://mianhassam96.github.io/MianConvert/" />
+    <meta property="og:title" content="MianConvert – Free Browser Video Toolkit" />
+    <meta property="og:description" content="12 professional video tools — convert, compress, edit, subtitles, thumbnails and more. Zero uploads. 100% private. Runs in your browser." />
+    <meta property="og:image" content="https://mianhassam96.github.io/MianConvert/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="MianConvert" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="https://mianhassam96.github.io/MianConvert/" />
+    <meta name="twitter:title" content="MianConvert – Free Browser Video Toolkit" />
+    <meta name="twitter:description" content="12 professional video tools. Zero uploads. 100% private. Runs in your browser." />
+    <meta name="twitter:image" content="https://mianhassam96.github.io/MianConvert/og-image.png" />
+
+    <!-- SPA redirect handler for GitHub Pages 404 -->
+    <script>
+      (function() {
+        const p = new URLSearchParams(window.location.search).get('p');
+        if (p) {
+          const base = '/MianConvert';
+          window.history.replaceState(null, '', base + decodeURIComponent(p));
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

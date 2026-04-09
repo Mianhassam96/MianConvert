@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -325,6 +325,13 @@ const Index = () => {
   };
 
   const closeTool = () => setActiveTool(null);
+
+  // Escape key closes tool panel
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") closeTool(); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const activeDef = ALL_TOOLS.find(t => t.id === activeTool);
 

@@ -5,12 +5,12 @@ import { Zap, Code2, Heart, Github, Shield, Globe } from "lucide-react";
 import { fadeUp, stagger, scaleIn } from "@/lib/motion";
 
 const FEATURES = [
-  { icon: "🔄", title: "12 Powerful Tools", desc: "Pro Editor, Timeline, Overlay Studio, Clean Video, Convert, Compress, Resize, GIF Maker, Audio Studio, Merge, Subtitle, and Thumbnail." },
-  { icon: "🔒", title: "100% Private", desc: "Nothing leaves your device. All processing happens in your browser using WebAssembly — no servers, no uploads." },
-  { icon: "⚡", title: "FFmpeg Powered", desc: "Built on FFmpeg compiled to WebAssembly. The same engine used by professionals, running entirely client-side." },
+  { icon: "🎬", title: "12 Professional Tools", desc: "Pro Editor, Timeline, Overlay Studio, Clean Video, Convert, Compress, Resize, GIF Maker, Audio Studio, Merge, Subtitle & Thumbnail." },
+  { icon: "🔒", title: "100% Private", desc: "Nothing leaves your device. All processing happens in your browser using WebAssembly — no servers, no uploads, ever." },
+  { icon: "⚡", title: "FFmpeg Powered", desc: "Built on FFmpeg compiled to WebAssembly — the same engine used by professionals, running entirely client-side with a singleton loader." },
   { icon: "🆓", title: "Completely Free", desc: "No accounts, no subscriptions, no limits. MianConvert is and always will be free." },
-  { icon: "📱", title: "Works Everywhere", desc: "Responsive design that works on desktop, tablet, and mobile. Dark and light mode included." },
-  { icon: "🎨", title: "Creative Tools", desc: "Filters, text overlays, clip creation with loops — go beyond basic conversion." },
+  { icon: "📱", title: "Works Everywhere", desc: "Fully responsive — desktop, tablet, and mobile. Dark and light mode. Works in any modern browser." },
+  { icon: "🎨", title: "Smart Dashboard", desc: "Grouped tool cards, live search, favorites, drag-to-reorder merge, smart presets and auto format detection." },
 ];
 
 const STACK = ["React 18", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "FFmpeg WASM", "Framer Motion", "GitHub Pages"];

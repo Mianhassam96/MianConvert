@@ -316,7 +316,12 @@ const Index = () => {
 
   const openTool = (id: string) => {
     setActiveTool(id);
-    setTimeout(() => toolPanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 80);
+    setTimeout(() => {
+      if (toolPanelRef.current) {
+        const top = toolPanelRef.current.getBoundingClientRect().top + window.scrollY - 72;
+        window.scrollTo({ top, behavior: "smooth" });
+      }
+    }, 120);
   };
 
   const closeTool = () => setActiveTool(null);
@@ -438,11 +443,15 @@ const Index = () => {
           >
             <div className="flex items-center gap-2 mb-1">
               <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quick Drop</p>
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Quick Drop — opens Convert tool automatically</p>
             </div>
             <DropZone
-              onFile={() => {}}
-              label="Drop any video here to get started — then pick a tool below"
+              onFile={(f) => {
+                // Store file for ConvertTool to pick up, then open it
+                (window as any).__quickDropFile = f;
+                openTool("convert");
+              }}
+              label="Drop any video here — opens Convert tool instantly"
             />
           </motion.div>
 

@@ -14,7 +14,7 @@ import TrimControl from "@/components/TrimControl";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { FileVideo, X, Scissors, RotateCcw, FlipHorizontal, AlertTriangle, Zap } from "lucide-react";
+import { Scissors, RotateCcw, FlipHorizontal } from "lucide-react";
 import { motion } from "framer-motion";
 
 type Fmt = "mp4" | "webm" | "mp3" | "wav" | "avi" | "mov" | "mkv" | "muted";

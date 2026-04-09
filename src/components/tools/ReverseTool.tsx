@@ -6,10 +6,11 @@ import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } from "@/lib/ffmpeg-run";
 import DropZone from "@/components/DropZone";
+import VideoPreview from "@/components/VideoPreview";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { X, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 
 const ReverseTool = () => {
   const [video, setVideo] = useState<File | null>(null);
@@ -76,19 +77,7 @@ const ReverseTool = () => {
       {!video ? (
         <DropZone onFile={handleVideo} label="Drop video to reverse" />
       ) : (
-        <div className="space-y-3">
-          <div className="relative rounded-xl overflow-hidden bg-black shadow-lg">
-            <video ref={videoRef} src={previewUrl} controls className="w-full max-h-52 object-contain" />
-            <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-black/80 text-white rounded-full p-1.5">
-              <X className="w-3.5 h-3.5" />
-            </button>
-          </div>
-          {warning && (
-            <div className="flex items-center gap-2 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
-              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />{warning}
-            </div>
-          )}
-        </div>
+        <VideoPreview ref={videoRef} file={video} previewUrl={previewUrl} onReset={reset} warning={warning} />
       )}
 
       {video && !result && (

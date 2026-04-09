@@ -156,6 +156,12 @@
     @apply shadow-lg shadow-violet-500/10;
     transform: translateY(-2px);
   }
+
+  /* ── Tool card ── */
+  .tool-card-edit:hover    { box-shadow: 0 8px 32px rgba(124,58,237,0.18), 0 2px 8px rgba(0,0,0,0.06); }
+  .tool-card-convert:hover { box-shadow: 0 8px 32px rgba(6,182,212,0.18),  0 2px 8px rgba(0,0,0,0.06); }
+  .tool-card-audio:hover   { box-shadow: 0 8px 32px rgba(217,70,239,0.18), 0 2px 8px rgba(0,0,0,0.06); }
+  .tool-card-adv:hover     { box-shadow: 0 8px 32px rgba(249,115,22,0.18), 0 2px 8px rgba(0,0,0,0.06); }
 }
 
 /* ── Keyframes ─────────────────────────────────────── */

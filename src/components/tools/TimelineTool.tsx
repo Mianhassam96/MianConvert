@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -15,6 +15,7 @@ import VideoPreview from "@/components/VideoPreview";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { sessionStore } from "@/lib/session-store";
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
 
@@ -45,12 +46,18 @@ const TimelineTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const handleVideo = (f: File) => {
     const err = validateVideoFile(f);
     if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setWarning(getFileSizeWarning(f));
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
+    sessionStore.set(f);
   };
 
   const onMetadata = () => {

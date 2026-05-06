@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -14,6 +14,7 @@ import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { X, Download, Camera, Type } from "lucide-react";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
+import { sessionStore } from "@/lib/session-store";
 
 type ExportSize = "1280x720" | "1920x1080" | "800x450" | "original";
 
@@ -37,11 +38,17 @@ const ThumbnailTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const handleVideo = (f: File) => {
     const err = validateVideoFile(f);
     if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setThumbnail(null); setDone(false);
+    sessionStore.set(f);
   };
 
   const reset = () => {

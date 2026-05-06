@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -15,6 +15,7 @@ import { X, Music, VolumeX, Volume2 } from "lucide-react";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { sessionStore } from "@/lib/session-store";
 
 type Mode = "adjust" | "mute" | "extract" | "convert";
 type OutputFmt = "mp3" | "wav" | "aac";
@@ -38,11 +39,17 @@ const AudioStudioTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !file) handleFile(session.file);
+  }, []);
+
   const handleFile = (f: File) => {
     const isValid = f.type.startsWith("audio/") || f.type.startsWith("video/");
     if (!isValid) { toast({ variant: "destructive", title: "Please upload a video or audio file" }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setFile(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
+    sessionStore.set(f);
   };
 
   const reset = () => {

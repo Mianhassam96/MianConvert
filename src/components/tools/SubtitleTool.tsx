@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
@@ -11,6 +11,7 @@ import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { FileText, Upload, Info, AlertTriangle, RefreshCw } from "lucide-react";
+import { sessionStore } from "@/lib/session-store";
 
 type FontSize = "20" | "28" | "36" | "48";
 type SubPosition = "bottom" | "top" | "middle";
@@ -59,12 +60,18 @@ const SubtitleTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const handleVideo = (f: File) => {
     const err = validateVideoFile(f);
     if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setVideo(f); setPreviewUrl(URL.createObjectURL(f));
     setResult(null); setDone(false); setError(null);
+    sessionStore.set(f);
   };
 
   const handleSrt = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ import VideoPreview from "@/components/VideoPreview";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { sessionStore } from "@/lib/session-store";
 
 type FilterId = "none" | "cinematic" | "vintage" | "vivid" | "bw" | "teal" | "warm" | "cool";
 type AspectRatio = "none" | "16:9" | "9:16" | "1:1" | "4:3";
@@ -64,6 +65,12 @@ const ProEditorTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  // Pick up session file so user doesn't need to re-upload
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const previewStyle = {
     filter: [
       FILTERS.find(f => f.id === filter)?.css !== "none" ? FILTERS.find(f => f.id === filter)?.css : "",
@@ -79,6 +86,7 @@ const ProEditorTool = () => {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setWarning(getFileSizeWarning(f));
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
+    sessionStore.set(f);
   };
 
   const reset = () => {

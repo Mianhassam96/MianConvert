@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
@@ -14,6 +14,7 @@ import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Trash2, ImagePlus, Type } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
 import ErrorRecovery from "@/components/ErrorRecovery";
+import { sessionStore } from "@/lib/session-store";
 
 type Align = "left" | "center" | "right";
 type VPos = "top" | "middle" | "bottom";
@@ -61,11 +62,17 @@ const OverlayStudioTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const handleVideo = (f: File) => {
     const err = validateVideoFile(f);
     if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
+    sessionStore.set(f);
   };
 
   const reset = () => {

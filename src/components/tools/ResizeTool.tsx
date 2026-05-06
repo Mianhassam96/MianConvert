@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -16,6 +16,7 @@ import { X, AlertTriangle } from "lucide-react";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { sessionStore } from "@/lib/session-store";
 
 type RatioPreset = "custom" | "16:9" | "9:16" | "1:1" | "4:3" | "3:4" | "21:9";
 type ResPreset = "custom" | "3840x2160" | "1920x1080" | "1280x720" | "854x480" | "640x360";
@@ -59,12 +60,18 @@ const ResizeTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const handleVideo = (f: File) => {
     const err = validateVideoFile(f);
     if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setWarning(getFileSizeWarning(f));
     setVideo(f); setPreviewUrl(URL.createObjectURL(f)); setResult(null); setDone(false);
+    sessionStore.set(f);
   };
 
   const reset = () => {

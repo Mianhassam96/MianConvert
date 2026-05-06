@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
@@ -12,6 +12,7 @@ import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { AlertTriangle, RefreshCw } from "lucide-react";
+import { sessionStore } from "@/lib/session-store";
 
 // Estimate GIF size in MB before processing
 const estimateGifMB = (durationS: number, widthPx: number, fps: number) =>
@@ -34,12 +35,18 @@ const GifTool = () => {
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
 
+  useEffect(() => {
+    const session = sessionStore.get();
+    if (session.file && !video) handleVideo(session.file);
+  }, []);
+
   const handleVideo = (f: File) => {
     const err = validateVideoFile(f);
     if (err) { toast({ variant: "destructive", title: err }); return; }
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setVideo(f); setPreviewUrl(URL.createObjectURL(f));
     setResult(null); setDone(false); setError(null);
+    sessionStore.set(f);
   };
 
   const reset = () => {

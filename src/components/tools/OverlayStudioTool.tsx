@@ -11,13 +11,10 @@ import DropZone from "@/components/DropZone";
 import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
-import { Plus, Trash2, ImagePlus, Type } from "lucide-react";
+import { Trash2, ImagePlus, Type } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
 import ErrorRecovery from "@/components/ErrorRecovery";
-import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
 
-type LayerType = "text" | "image";
 type Align = "left" | "center" | "right";
 type VPos = "top" | "middle" | "bottom";
 type Animation = "none" | "fadein" | "fadeout" | "slide";

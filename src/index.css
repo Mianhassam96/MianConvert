@@ -222,5 +222,7 @@
   transition-duration: 200ms;
   transition-timing-function: ease;
 }
-/* But NOT layout/transform transitions (would break animations) */
-.motion-safe\:transition-none { transition: none !important; }
+/* Exclude transform/opacity so Framer Motion animations aren't affected */
+[data-framer-motion], .motion-safe\:transition-none {
+  transition: none !important;
+}

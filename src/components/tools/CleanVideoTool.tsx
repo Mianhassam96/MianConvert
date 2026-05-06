@@ -153,6 +153,11 @@ const CleanVideoTool = () => {
             <div className="space-y-1.5">
               <Label className="text-xs text-gray-500">Blur strength: {blurStrength}</Label>
               <Slider min={3} max={30} step={1} value={[blurStrength]} onValueChange={([v]) => setBlurStrength(v)} />
+              {regions.length > 1 && (
+                <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2">
+                  ⚠️ Blur mode supports one region at a time. Multiple regions will use Smart Remove instead.
+                </p>
+              )}
             </div>
           )}
 

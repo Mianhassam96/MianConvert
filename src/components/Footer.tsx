@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Zap, Github, Globe, Heart } from "lucide-react";
+import { Github, Globe, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const TOOLS = ["Pro Editor", "Timeline", "Overlay Studio", "Clean Video", "Convert", "Compress", "Resize", "GIF Maker", "Audio Studio", "Merge", "Subtitle", "Thumbnail"];

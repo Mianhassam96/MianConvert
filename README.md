@@ -83,17 +83,6 @@
 
 ---
 
-## 🔮 Upcoming Features
-
-* AI auto captions and transcription
-* Video-to-Shorts generator
-* Preset templates for YouTube, TikTok, Instagram
-* Transition effects between clips
-* Drag-based timeline editor
-* Advanced color grading presets
-
----
-
 ## 💡 Why MianConvert?
 
 MianConvert combines **conversion + editing + effects + styling** in a single tool — no need for multiple apps.
@@ -117,7 +106,7 @@ MianConvert combines **conversion + editing + effects + styling** in a single to
 MIT License
 
 ---
-
+ 
 ## 👨‍💻 Author
 
 Built by **MultiMian** — creating tools for creators and developers.

@@ -36,12 +36,13 @@ const LandingPage = ({ config }: LandingPageProps) => {
     sessionStore.set(f);
     (window as any).__quickDropFile = f;
     if (config.preset) (window as any).__quickDropPreset = config.preset;
+    // Navigate first, then open tool after React has mounted Index
     navigate("/");
     setTimeout(() => {
       window.dispatchEvent(new CustomEvent("openTool", {
         detail: { toolId: config.toolId, preset: config.preset }
       }));
-    }, 300);
+    }, 500);
   };
 
   return (

@@ -98,6 +98,7 @@ const ThumbnailTool = () => {
       const base = video.name.replace(/\.[^.]+$/, "");
       setProgress(100); setDone(true);
       setThumbnail({ url, name: `${base}-thumbnail.jpg` });
+      sessionStore.markDone("thumbnail");
       toast({ title: "✓ Thumbnail extracted!" });
     } catch (e) {
       const msg = String(e); setError(msg);

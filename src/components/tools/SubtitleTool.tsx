@@ -150,6 +150,7 @@ const SubtitleTool = () => {
       const url = URL.createObjectURL(blob);
       setDone(true);
       setResult({ url, filename: `${base}-subtitled.mp4`, size: formatBytes(blob.size) });
+      sessionStore.markDone("subtitle");
       toast({ title: "✓ Subtitles burned in!" });
     } catch (e) {
       const msg = String(e);

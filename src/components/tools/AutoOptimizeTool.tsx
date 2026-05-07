@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useFFmpeg } from "@/hooks/use-ffmpeg";
 import { useToast } from "@/hooks/use-toast";
@@ -47,8 +47,6 @@ const detect = (file: File, width: number, height: number): DetectedInfo => {
 const AutoOptimizeTool = () => {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [vidW, setVidW] = useState(0);
-  const [vidH, setVidH] = useState(0);
   const [info, setInfo] = useState<DetectedInfo | null>(null);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
@@ -57,6 +55,7 @@ const AutoOptimizeTool = () => {
   const [result, setResult] = useState<{ url: string; filename: string; size: string; rawSize: number } | null>(null);
   const { toast } = useToast();
   const { ffmpeg, loaded, load } = useFFmpeg();
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
     const session = sessionStore.get();
@@ -70,12 +69,17 @@ const AutoOptimizeTool = () => {
     setFile(f); setPreviewUrl(URL.createObjectURL(f));
     setResult(null); setDone(false); setError(null); setInfo(null);
     sessionStore.set(f);
+    // Pre-compute info with session dimensions if available
+    const session = sessionStore.get();
+    if (session.width > 0 || session.height > 0) {
+      setInfo(detect(f, session.width, session.height));
+    }
   };
 
   const onMetadata = () => {
-    const w = (document.querySelector("video") as HTMLVideoElement)?.videoWidth ?? 0;
-    const h = (document.querySelector("video") as HTMLVideoElement)?.videoHeight ?? 0;
-    setVidW(w); setVidH(h);
+    const v = videoRef.current;
+    const w = v?.videoWidth ?? 0;
+    const h = v?.videoHeight ?? 0;
     if (file) setInfo(detect(file, w, h));
   };
 
@@ -123,7 +127,13 @@ const AutoOptimizeTool = () => {
       {!file ? (
         <DropZone onFile={handleFile} label="Drop video to auto-optimize" />
       ) : (
-        <VideoPreview file={file} previewUrl={previewUrl} onReset={reset} onLoadedMetadata={onMetadata} />
+        <VideoPreview ref={videoRef} file={file} previewUrl={previewUrl} onReset={reset} onLoadedMetadata={onMetadata} />
+      )}
+
+      {file && !info && !result && (
+        <div className="text-center py-4 text-xs text-gray-400 dark:text-gray-500">
+          Play the video above for a moment to detect its properties, then the optimize button will appear.
+        </div>
       )}
 
       {file && info && !result && (

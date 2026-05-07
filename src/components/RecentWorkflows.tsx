@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { workspaceMemory } from "@/lib/workspace-memory";
+import { workspaceMemory, WorkflowEntry } from "@/lib/workspace-memory";
 import { Clock, ChevronRight } from "lucide-react";
 
 interface RecentWorkflowsProps {
@@ -7,7 +8,17 @@ interface RecentWorkflowsProps {
 }
 
 const RecentWorkflows = ({ onOpen }: RecentWorkflowsProps) => {
-  const workflows = workspaceMemory.getWorkflows();
+  const [workflows, setWorkflows] = useState<WorkflowEntry[]>(() => workspaceMemory.getWorkflows());
+
+  // Refresh when storage changes (e.g. after openTool saves a new workflow)
+  useEffect(() => {
+    const handler = () => setWorkflows(workspaceMemory.getWorkflows());
+    window.addEventListener("storage", handler);
+    // Also poll every 2s for same-tab updates (localStorage doesn't fire storage event in same tab)
+    const id = setInterval(() => setWorkflows(workspaceMemory.getWorkflows()), 2000);
+    return () => { window.removeEventListener("storage", handler); clearInterval(id); };
+  }, []);
+
   if (!workflows.length) return null;
 
   return (

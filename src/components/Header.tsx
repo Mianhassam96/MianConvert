@@ -40,7 +40,7 @@ const Header = () => {
               <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 2, repeat: Infinity }}
                 className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-400 rounded-full shadow-sm shadow-green-400/50 shrink-0" />
             </div>
-            <p className="text-[9px] sm:text-[10px] text-violet-200 font-medium tracking-widest uppercase">Video Toolkit</p>
+            <p className="text-[9px] sm:text-[10px] text-violet-200 font-medium tracking-widest uppercase">Video Workspace</p>
           </div>
         </Link>
 

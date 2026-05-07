@@ -8,12 +8,16 @@ import SmartSuggestions from "@/components/SmartSuggestions";
 import LiveStats from "@/components/LiveStats";
 import SessionTimeline from "@/components/SessionTimeline";
 import PreviewIntelligence from "@/components/PreviewIntelligence";
+import ActivityFeed from "@/components/ActivityFeed";
+import WorkflowTemplates from "@/components/WorkflowTemplates";
+import RecentWorkflows from "@/components/RecentWorkflows";
 import { Link } from "react-router-dom";
 import { fadeUp, stagger, scaleIn, tabPanel } from "@/lib/motion";
-import { Shield, Zap, Globe, Search, Star, X, ChevronRight, Lock } from "lucide-react";
+import { Shield, Zap, Search, Star, X, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
 import { useSession } from "@/hooks/use-session";
+import { workspaceMemory } from "@/lib/workspace-memory";
 
 import ProEditorTool from "@/components/tools/ProEditorTool";
 import TimelineTool from "@/components/tools/TimelineTool";
@@ -206,16 +210,34 @@ const Index = () => {
   const [activeTool, setActiveTool] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<string | undefined>(undefined);
   const [search, setSearch] = useState("");
-  const [favs, setFavs] = useState<Set<string>>(new Set());
+  const [favs, setFavs] = useState<Set<string>>(() => new Set(workspaceMemory.getFavTools()));
   const toolPanelRef = useRef<HTMLDivElement>(null);
   const session = useSession();
 
-  const toggleFav = (id: string) =>
-    setFavs(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleFav = (id: string) => {
+    setFavs(prev => {
+      const n = new Set(prev);
+      n.has(id) ? n.delete(id) : n.add(id);
+      workspaceMemory.setFavTools([...n]);
+      return n;
+    });
+  };
 
   const openTool = (id: string, preset?: string) => {
     setActiveTool(id);
     setActivePreset(preset);
+    // Save to workspace memory for recent workflows
+    const toolDef = ALL_TOOLS.find(t => t.id === id);
+    if (toolDef) {
+      workspaceMemory.addWorkflow({
+        id: `${id}-${preset ?? "default"}`,
+        label: preset ? `${toolDef.label} (${preset})` : toolDef.label,
+        icon: toolDef.icon,
+        toolId: id,
+        preset,
+      });
+      if (preset) workspaceMemory.addPreset(preset);
+    }
     setTimeout(() => {
       if (toolPanelRef.current) {
         const top = toolPanelRef.current.getBoundingClientRect().top + window.scrollY - 72;
@@ -305,17 +327,17 @@ const Index = () => {
 
             <motion.div variants={fadeUp} className="space-y-2">
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tight">
-                Edit, convert &amp; optimize videos
+                The fastest way to prepare
               </h1>
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight">
                 <span className="bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 bg-clip-text text-transparent text-glow">
-                  right in your browser
+                  videos for anywhere
                 </span>
               </h1>
             </motion.div>
 
             <motion.p variants={fadeUp} className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed px-2">
-              No upload. No signup. No limits. — 12 professional tools that run entirely on your device.
+              Your browser-based video workspace. No upload. No signup. No limits. — 13 professional tools that run entirely on your device.
             </motion.p>
 
             {/* Trust line */}
@@ -422,6 +444,15 @@ const Index = () => {
 
           {/* ── USE CASE BAR ── */}
           <UseCaseBar onOpen={openTool} />
+
+          {/* ── WORKFLOW TEMPLATES ── */}
+          <WorkflowTemplates onOpen={openTool} />
+
+          {/* ── RECENT WORKFLOWS (from memory) ── */}
+          <RecentWorkflows onOpen={openTool} />
+
+          {/* ── ACTIVITY FEED + TRENDING ── */}
+          <ActivityFeed />
 
           {/* ── SEARCH BAR ── */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.4 }} className="relative">

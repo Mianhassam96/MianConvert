@@ -5,15 +5,15 @@ import { Zap, Code2, Heart, Github, Shield, Globe } from "lucide-react";
 import { fadeUp, stagger, scaleIn } from "@/lib/motion";
 
 const FEATURES = [
-  { icon: "🎬", title: "12 Professional Tools", desc: "Pro Editor, Timeline, Overlay Studio, Clean Video, Convert, Compress, Resize, GIF Maker, Audio Studio, Merge, Subtitle & Thumbnail." },
+  { icon: "🎬", title: "13 Professional Tools", desc: "Pro Editor, Timeline, Overlay Studio, Clean Video, Convert, Compress, Resize, GIF Maker, Audio Studio, Merge, Subtitle, Thumbnail & Auto Optimize." },
   { icon: "🔒", title: "100% Private", desc: "Nothing leaves your device. All processing happens in your browser using WebAssembly — no servers, no uploads, ever." },
   { icon: "⚡", title: "FFmpeg Powered", desc: "Built on FFmpeg compiled to WebAssembly — the same engine used by professionals, running entirely client-side with a singleton loader." },
   { icon: "🆓", title: "Completely Free", desc: "No accounts, no subscriptions, no limits. MianConvert is and always will be free." },
   { icon: "📱", title: "Works Everywhere", desc: "Fully responsive — desktop, tablet, and mobile. Dark and light mode. Works in any modern browser." },
-  { icon: "🎨", title: "Smart Dashboard", desc: "Grouped tool cards, live search, favorites, drag-to-reorder merge, smart presets and auto format detection." },
+  { icon: "🧠", title: "Smart Workspace", desc: "Workflow templates, session memory, live activity feed, AI-style suggestions, post-conversion flow engine and trending presets." },
 ];
 
-const STACK = ["React 18", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "FFmpeg WASM", "Framer Motion", "GitHub Pages"];
+const STACK = ["React 18", "TypeScript", "Vite", "Tailwind CSS", "shadcn/ui", "FFmpeg WASM", "Framer Motion", "GitHub Pages", "Session Memory", "Workflow Engine"];
 
 const About = () => (
   <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-[#0a0b14] transition-colors relative overflow-x-hidden">
@@ -40,13 +40,13 @@ const About = () => (
             </span>
           </motion.div>
           <motion.h1 variants={fadeUp} className="text-3xl sm:text-5xl font-black text-gray-900 dark:text-white leading-tight tracking-tight">
-            Video tools that respect<br />your{" "}
+            Your browser-based<br />
             <span className="bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 bg-clip-text text-transparent text-glow">
-              privacy
+              video workspace
             </span>
           </motion.h1>
           <motion.p variants={fadeUp} className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed px-2">
-            MianConvert is a free, browser-based video toolkit. No file uploads, no accounts, no tracking — just powerful tools that run entirely on your device.
+            MianConvert is a free, browser-based video workspace. No file uploads, no accounts, no tracking — 13 powerful tools that run entirely on your device.
           </motion.p>
 
           {/* Quick stats */}

@@ -37,6 +37,7 @@ const MergeTool        = lazy(() => import("@/components/tools/MergeTool"));
 const SubtitleTool     = lazy(() => import("@/components/tools/SubtitleTool"));
 const ThumbnailTool    = lazy(() => import("@/components/tools/ThumbnailTool"));
 const AutoOptimizeTool = lazy(() => import("@/components/tools/AutoOptimizeTool"));
+const AICaptionTool    = lazy(() => import("@/components/tools/AICaptionTool"));
 
 interface ToolDef {
   id: string;
@@ -92,9 +93,10 @@ const TOOL_SECTIONS = [
   {
     id: "smart", label: "Smart Tools", emoji: "🧠",
     accent: "from-violet-600 to-fuchsia-600",
-    cols: "grid-cols-1",
+    cols: "grid-cols-1 sm:grid-cols-2",
     tools: [
       { id: "autooptimize", icon: "⚡", label: "Auto Optimize",  desc: "1-click: detect & apply best format, compression & resolution",tags: ["auto","optimize","smart","1click"],                gradient: "from-violet-600 to-fuchsia-600",iconBg: "bg-violet-100 dark:bg-violet-900/40"},
+      { id: "aicaption",    icon: "✨", label: "AI Captions",    desc: "Auto-generate captions with TikTok, Reel & YouTube styles",   tags: ["caption","subtitle","ai","tiktok","reel","auto"],  gradient: "from-fuchsia-600 to-pink-600",  iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40"},
     ] as ToolDef[],
   },
 ];
@@ -108,7 +110,7 @@ const TRUST_ITEMS = [
 ];
 
 const STATS = [
-  { value: "13",   label: "Tools",    emoji: "🛠" },
+  { value: "14",   label: "Tools",    emoji: "🛠" },
   { value: "10+",  label: "Formats",  emoji: "🎞" },
   { value: "0",    label: "Uploads",  emoji: "🔒" },
   { value: "100%", label: "Private",  emoji: "✅" },
@@ -301,6 +303,7 @@ const Index = () => {
       case "subtitle":     return <SubtitleTool />;
       case "thumbnail":    return <ThumbnailTool />;
       case "autooptimize": return <AutoOptimizeTool />;
+      case "aicaption":    return <AICaptionTool />;
       default:             return null;
     }
   };

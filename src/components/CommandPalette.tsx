@@ -37,6 +37,7 @@ const CommandPalette = ({ onOpenTool }: CommandPaletteProps) => {
     { id: "merge",        icon: "🔗", label: "Merge videos",          description: "Combine multiple videos into one",   category: "Tools",     keywords: ["merge","combine","join","concat"],   action: () => onOpenTool("merge") },
     { id: "proeditor",    icon: "🎬", label: "Pro Editor",            description: "Filters, color grading, crop",       category: "Tools",     keywords: ["filter","color","grade","edit"],     action: () => onOpenTool("proeditor") },
     { id: "autooptimize", icon: "⚡", label: "Auto Optimize",         description: "1-click smart optimization",         category: "Tools",     keywords: ["auto","optimize","smart","1click"],  action: () => onOpenTool("autooptimize") },
+    { id: "aicaption",    icon: "✨", label: "AI Captions",            description: "Auto-generate TikTok/Reel captions",  category: "Tools",     keywords: ["caption","subtitle","ai","tiktok","reel","auto"], action: () => onOpenTool("aicaption") },
     // Presets
     { id: "p-tiktok",     icon: "📱", label: "TikTok preset",         description: "MP4 · 720p · vertical-ready",        category: "Presets",   keywords: ["tiktok","vertical","9:16","short"],  action: () => onOpenTool("convert", "tiktok") },
     { id: "p-youtube",    icon: "▶️", label: "YouTube 1080p preset",  description: "MP4 · 1080p · high quality",         category: "Presets",   keywords: ["youtube","1080p","hd","upload"],     action: () => onOpenTool("convert", "youtube") },

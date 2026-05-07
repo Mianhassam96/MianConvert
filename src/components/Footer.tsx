@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Github, Globe, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const TOOLS = ["Pro Editor", "Timeline", "Overlay Studio", "Clean Video", "Convert", "Compress", "Resize", "GIF Maker", "Audio Studio", "Merge", "Subtitle", "Thumbnail", "Auto Optimize"];
+const TOOLS = ["Pro Editor", "Timeline", "Overlay Studio", "Clean Video", "Convert", "Compress", "Resize", "GIF Maker", "Audio Studio", "Merge", "Subtitle", "Thumbnail", "Auto Optimize", "AI Captions"];
 
 const Footer = () => (
   <footer className="bg-gradient-to-b from-gray-950 to-gray-950 border-t border-violet-900/30 text-gray-400 mt-auto">

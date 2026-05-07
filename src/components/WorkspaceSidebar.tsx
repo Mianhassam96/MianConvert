@@ -43,10 +43,10 @@ const WorkspaceSidebar = ({ onOpenTool }: WorkspaceSidebarProps) => {
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 40 }}
             onClick={() => setOpen(o => !o)}
-            className="fixed right-4 bottom-20 z-40 flex items-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white px-3 py-2.5 rounded-2xl shadow-xl shadow-violet-500/30 text-xs font-bold"
+            className="fixed right-3 sm:right-4 bottom-4 sm:bottom-6 z-40 flex items-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white px-3 py-2.5 rounded-2xl shadow-xl shadow-violet-500/30 text-xs font-bold"
           >
             <FolderOpen className="w-4 h-4" />
-            <span>Project</span>
+            <span className="hidden xs:inline">Project</span>
             {project.files.length > 0 && (
               <span className="bg-white/25 px-1.5 py-0.5 rounded-full text-[10px]">
                 {project.files.length}

@@ -2,7 +2,7 @@ import { motion } from "framer-motion";
 import { Github, Globe, Heart } from "lucide-react";
 import { Link } from "react-router-dom";
 
-const TOOLS = ["Pro Editor", "Timeline", "Overlay Studio", "Clean Video", "Convert", "Compress", "Resize", "GIF Maker", "Audio Studio", "Merge", "Subtitle", "Thumbnail", "Auto Optimize", "AI Captions"];
+const TOOLS = ["Pro Editor", "Timeline", "Overlay Studio", "Clean Video", "Convert", "Compress", "Resize", "GIF Maker", "Audio Studio", "Merge", "Subtitle", "Thumbnail", "Auto Optimize", "AI Captions", "Silence Remover"];
 
 const Footer = () => (
   <footer className="bg-gradient-to-b from-gray-950 to-gray-950 border-t border-violet-900/30 text-gray-400 mt-auto">
@@ -45,7 +45,7 @@ const Footer = () => (
         {/* Tools */}
         <div className="space-y-3">
           <p className="text-white font-semibold text-sm uppercase tracking-wider">Tools</p>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5">
+          <ul className="grid grid-cols-2 sm:grid-cols-2 gap-x-4 gap-y-1.5">
             {TOOLS.map(t => (
               <motion.li key={t} whileHover={{ x: 3 }}
                 className="text-sm text-gray-400 hover:text-violet-300 transition-colors cursor-default">{t}</motion.li>

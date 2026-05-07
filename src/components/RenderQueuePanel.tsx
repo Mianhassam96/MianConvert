@@ -87,7 +87,7 @@ const RenderQueuePanel = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         onClick={() => setOpen(o => !o)}
-        className="fixed left-4 bottom-20 z-40 flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2.5 rounded-2xl shadow-xl text-xs font-bold hover:border-violet-400 transition-colors"
+        className="fixed left-3 sm:left-4 bottom-4 sm:bottom-6 z-40 flex items-center gap-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 px-3 py-2.5 rounded-2xl shadow-xl text-xs font-bold hover:border-violet-400 transition-colors"
       >
         <ListVideo className="w-4 h-4 text-violet-500" />
         <span>Queue</span>
@@ -112,7 +112,7 @@ const RenderQueuePanel = () => {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 8, scale: 0.97 }}
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
-              className="fixed left-4 bottom-20 z-50 w-72 sm:w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden"
+              className="fixed left-3 sm:left-4 bottom-16 sm:bottom-20 z-50 w-[calc(100vw-1.5rem)] max-w-xs sm:w-80 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-2xl overflow-hidden"
             >
               <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
                 <div className="flex items-center gap-2">

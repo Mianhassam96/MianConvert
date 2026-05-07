@@ -44,7 +44,7 @@ const PreviewIntelligence = ({ file, duration, width, height }: PreviewIntellige
       className="space-y-2"
     >
       {/* File stats row */}
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         {stats.map((s) => (
           <div key={s.label} className="glass-panel px-3 py-2.5 text-center">
             <p className={`text-xs font-bold truncate ${s.color}`}>{s.value}</p>

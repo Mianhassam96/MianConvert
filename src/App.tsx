@@ -47,6 +47,7 @@ const CREATOR = {
   THUMBNAIL: lp("YouTube Thumbnail Creator","Free YouTube Thumbnail Creator","Extract frames and create YouTube thumbnails","Generate professional YouTube thumbnails from your video. Add title text, choose the perfect frame.","thumbnail",undefined,"📸","from-amber-500 to-orange-500",[{icon:"📸",text:"HD thumbnails"},{icon:"🎨",text:"Add title text"},{icon:"⚡",text:"Instant"}]),
   SUBTITLE:  lp("Subtitle Burner","Free Subtitle Burner","Burn SRT captions into your video — permanently","Upload your video and SRT file. Subtitles are burned directly into the video frames.","subtitle",undefined,"💬","from-blue-500 to-cyan-500",[{icon:"💬",text:"SRT support"},{icon:"🎨",text:"Custom style"},{icon:"🔒",text:"Private"}]),
   AI_CAPTION:lp("AI Caption Generator","Free AI Caption Generator","Auto-generate captions for TikTok, Reels & YouTube","Generate captions automatically using browser AI. Choose from TikTok Bold, Reel Glow, YouTube Clean and more styles.","aicaption",undefined,"✨","from-fuchsia-600 to-pink-600",[{icon:"✨",text:"Auto-transcribe"},{icon:"📱",text:"TikTok/Reel styles"},{icon:"🔒",text:"100% private"}]),
+  SILENCE:   lp("Silence Remover","Free Silence Remover","Remove silent sections from video or audio automatically","Auto-detect and remove silence from podcasts, interviews, and lectures. Quick presets for every use case.","silenceremover",undefined,"🔇","from-slate-600 to-gray-700",[{icon:"🔇",text:"Auto-detect silence"},{icon:"🎙",text:"Podcast ready"},{icon:"⚡",text:"Fast"}]),
   PODCAST:   lp("Podcast Clip Maker","Free Podcast Clip Maker","Create short clips from podcast videos","Trim podcast videos into shareable clips. Extract audio, add captions, optimize for social.","timeline",undefined,"🎙","from-violet-500 to-purple-600",[{icon:"✂️",text:"Trim clips"},{icon:"🎧",text:"Extract audio"},{icon:"⚡",text:"Fast"}]),
   WATERMARK: lp("Add Watermark to Video","Free Video Watermark Tool","Add logo or text watermark to your video","Add custom watermarks, logos, or text overlays to your videos. No software needed.","overlay",undefined,"🧩","from-fuchsia-500 to-violet-600",[{icon:"🧩",text:"Logo overlay"},{icon:"💬",text:"Text watermark"},{icon:"🔒",text:"Private"}]),
 };
@@ -91,6 +92,9 @@ const SEO_ROUTES: [string, LandingConfig][] = [
   ["/reel-subtitle-maker",       CREATOR.AI_CAPTION],
   ["/auto-subtitle-generator",   CREATOR.AI_CAPTION],
   ["/youtube-caption-burner",    CREATOR.AI_CAPTION],
+  ["/silence-remover",           CREATOR.SILENCE],
+  ["/remove-silence-from-video", CREATOR.SILENCE],
+  ["/podcast-silence-remover",   CREATOR.SILENCE],
   ["/podcast-clip-maker",        CREATOR.PODCAST],
   ["/add-watermark-to-video",    CREATOR.WATERMARK],
   // Utility

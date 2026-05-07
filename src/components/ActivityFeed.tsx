@@ -59,7 +59,7 @@ const ActivityFeed = () => {
           <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse shrink-0" />
           <p className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Live activity</p>
         </div>
-        <div className="space-y-2 overflow-hidden" style={{ minHeight: 88 }}>
+        <div className="space-y-2 overflow-hidden min-h-[72px]">
           <AnimatePresence initial={false}>
             {items.map(item => (
               <motion.div

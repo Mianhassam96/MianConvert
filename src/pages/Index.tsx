@@ -13,6 +13,7 @@ import WorkflowTemplates from "@/components/WorkflowTemplates";
 import RecentWorkflows from "@/components/RecentWorkflows";
 import WorkspaceSidebar from "@/components/WorkspaceSidebar";
 import RenderQueuePanel from "@/components/RenderQueuePanel";
+import CreatorPacks from "@/components/CreatorPacks";
 import { Link } from "react-router-dom";
 import { fadeUp, stagger, scaleIn, tabPanel } from "@/lib/motion";
 import { Shield, Zap, Search, Star, X, ChevronRight, Lock } from "lucide-react";
@@ -38,6 +39,7 @@ const SubtitleTool     = lazy(() => import("@/components/tools/SubtitleTool"));
 const ThumbnailTool    = lazy(() => import("@/components/tools/ThumbnailTool"));
 const AutoOptimizeTool = lazy(() => import("@/components/tools/AutoOptimizeTool"));
 const AICaptionTool    = lazy(() => import("@/components/tools/AICaptionTool"));
+const SilenceRemoverTool = lazy(() => import("@/components/tools/SilenceRemoverTool"));
 
 interface ToolDef {
   id: string;
@@ -93,10 +95,11 @@ const TOOL_SECTIONS = [
   {
     id: "smart", label: "Smart Tools", emoji: "🧠",
     accent: "from-violet-600 to-fuchsia-600",
-    cols: "grid-cols-1 sm:grid-cols-2",
+    cols: "grid-cols-1 sm:grid-cols-3",
     tools: [
-      { id: "autooptimize", icon: "⚡", label: "Auto Optimize",  desc: "1-click: detect & apply best format, compression & resolution",tags: ["auto","optimize","smart","1click"],                gradient: "from-violet-600 to-fuchsia-600",iconBg: "bg-violet-100 dark:bg-violet-900/40"},
-      { id: "aicaption",    icon: "✨", label: "AI Captions",    desc: "Auto-generate captions with TikTok, Reel & YouTube styles",   tags: ["caption","subtitle","ai","tiktok","reel","auto"],  gradient: "from-fuchsia-600 to-pink-600",  iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40"},
+      { id: "autooptimize",   icon: "⚡", label: "Auto Optimize",    desc: "1-click: detect & apply best format, compression & resolution", tags: ["auto","optimize","smart","1click"],          gradient: "from-violet-600 to-fuchsia-600", iconBg: "bg-violet-100 dark:bg-violet-900/40" },
+      { id: "aicaption",      icon: "✨", label: "AI Captions",      desc: "Auto-generate captions with TikTok, Reel & YouTube styles",    tags: ["caption","subtitle","ai","tiktok","reel"],  gradient: "from-fuchsia-600 to-pink-600",   iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40" },
+      { id: "silenceremover", icon: "🔇", label: "Silence Remover",  desc: "Auto-remove silent sections from video or audio",              tags: ["silence","remove","podcast","audio","cut"],  gradient: "from-slate-600 to-gray-700",    iconBg: "bg-slate-100 dark:bg-slate-900/40" },
     ] as ToolDef[],
   },
 ];
@@ -110,7 +113,7 @@ const TRUST_ITEMS = [
 ];
 
 const STATS = [
-  { value: "14",   label: "Tools",    emoji: "🛠" },
+  { value: "15",   label: "Tools",    emoji: "🛠" },
   { value: "10+",  label: "Formats",  emoji: "🎞" },
   { value: "0",    label: "Uploads",  emoji: "🔒" },
   { value: "100%", label: "Private",  emoji: "✅" },
@@ -303,8 +306,9 @@ const Index = () => {
       case "subtitle":     return <SubtitleTool />;
       case "thumbnail":    return <ThumbnailTool />;
       case "autooptimize": return <AutoOptimizeTool />;
-      case "aicaption":    return <AICaptionTool />;
-      default:             return null;
+      case "aicaption":       return <AICaptionTool />;
+      case "silenceremover":  return <SilenceRemoverTool />;
+      default:                return null;
     }
   };
 
@@ -473,6 +477,9 @@ const Index = () => {
 
           {/* ── WORKFLOW TEMPLATES ── */}
           <WorkflowTemplates onOpen={openTool} />
+
+          {/* ── CREATOR PACKS ── */}
+          <CreatorPacks onOpen={openTool} />
 
           {/* ── RECENT WORKFLOWS (from memory) ── */}
           <RecentWorkflows onOpen={openTool} />

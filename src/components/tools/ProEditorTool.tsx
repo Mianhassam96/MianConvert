@@ -56,6 +56,7 @@ const ProEditorTool = () => {
   const [gamma, setGamma] = useState(100);
   const [aspect, setAspect] = useState<AspectRatio>("none");
   const [panel, setPanel] = useState<Panel>("filters");
+  const [splitPreview, setSplitPreview] = useState(false);
   const [progress, setProgress] = useState(0);
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
@@ -182,19 +183,72 @@ const ProEditorTool = () => {
       {!video ? (
         <DropZone onFile={handleVideo} label="Drop video to edit" />
       ) : (
-        <VideoPreview
-          ref={videoRef}
-          file={video}
-          previewUrl={previewUrl}
-          onReset={reset}
-          warning={warning}
-          badge={vidW > 0 ? `Live preview · ${vidW}×${vidH}` : "Live preview"}
-          style={previewStyle}
-          onLoadedMetadata={() => {
-            const v = videoRef.current;
-            if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
-          }}
-        />
+        <div className="space-y-2">
+          {/* Split preview toggle */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">
+              {vidW > 0 ? `${vidW}×${vidH} · Live preview` : "Live preview"}
+            </span>
+            <button
+              onClick={() => setSplitPreview(v => !v)}
+              className={cn(
+                "text-[10px] font-bold px-2.5 py-1 rounded-lg border transition-all",
+                splitPreview
+                  ? "border-violet-500 bg-violet-50 dark:bg-violet-950/30 text-violet-700 dark:text-violet-300"
+                  : "border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:border-violet-300"
+              )}
+            >
+              {splitPreview ? "⬛ Split ON" : "◧ Split Preview"}
+            </button>
+          </div>
+
+          {splitPreview ? (
+            /* Split before/after view */
+            <div className="relative w-full rounded-2xl overflow-hidden bg-black shadow-xl" style={{ paddingBottom: "56.25%" }}>
+              {/* Before (left half — no filter) */}
+              <video
+                src={previewUrl}
+                muted playsInline
+                className="absolute inset-0 w-full h-full object-contain"
+                style={{ clipPath: "inset(0 50% 0 0)" }}
+              />
+              {/* After (right half — with filter) */}
+              <video
+                ref={videoRef}
+                src={previewUrl}
+                controls playsInline
+                style={{ ...previewStyle, clipPath: "inset(0 0 0 50%)" }}
+                className="absolute inset-0 w-full h-full object-contain"
+                onLoadedMetadata={() => {
+                  const v = videoRef.current;
+                  if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
+                }}
+              />
+              {/* Divider line */}
+              <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/80 shadow-lg pointer-events-none" />
+              <div className="absolute top-2 left-1/4 -translate-x-1/2 bg-black/60 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">Before</div>
+              <div className="absolute top-2 left-3/4 -translate-x-1/2 bg-violet-600/80 text-white text-[10px] font-bold px-2 py-0.5 rounded-full pointer-events-none">After</div>
+              {/* Close button */}
+              <button onClick={reset} className="absolute top-2 right-2 bg-black/60 hover:bg-red-500/80 text-white rounded-full p-1.5 transition-colors z-10">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 6L6 18M6 6l12 12" strokeLinecap="round"/></svg>
+              </button>
+            </div>
+          ) : (
+            <VideoPreview
+              ref={videoRef}
+              file={video}
+              previewUrl={previewUrl}
+              onReset={reset}
+              warning={warning}
+              badge={vidW > 0 ? `Live preview · ${vidW}×${vidH}` : "Live preview"}
+              style={previewStyle}
+              onLoadedMetadata={() => {
+                const v = videoRef.current;
+                if (v) { setVidW(v.videoWidth); setVidH(v.videoHeight); }
+              }}
+            />
+          )}
+        </div>
       )}
 
       {video && !result && (

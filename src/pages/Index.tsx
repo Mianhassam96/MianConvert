@@ -11,6 +11,8 @@ import PreviewIntelligence from "@/components/PreviewIntelligence";
 import ActivityFeed from "@/components/ActivityFeed";
 import WorkflowTemplates from "@/components/WorkflowTemplates";
 import RecentWorkflows from "@/components/RecentWorkflows";
+import WorkspaceSidebar from "@/components/WorkspaceSidebar";
+import RenderQueuePanel from "@/components/RenderQueuePanel";
 import { Link } from "react-router-dom";
 import { fadeUp, stagger, scaleIn, tabPanel } from "@/lib/motion";
 import { Shield, Zap, Search, Star, X, ChevronRight, Lock } from "lucide-react";
@@ -19,6 +21,7 @@ import { sessionStore } from "@/lib/session-store";
 import { useSession } from "@/hooks/use-session";
 import { workspaceMemory } from "@/lib/workspace-memory";
 import { probeAndStore } from "@/lib/ffmpeg-run";
+import { projectStore } from "@/lib/project-store";
 
 // ── Lazy-loaded tool components (only loaded when tool is opened) ─────────────
 const ProEditorTool    = lazy(() => import("@/components/tools/ProEditorTool"));
@@ -327,6 +330,10 @@ const Index = () => {
 
       <Header />
 
+      {/* Workspace sidebar + render queue — always mounted */}
+      <WorkspaceSidebar onOpenTool={openTool} />
+      <RenderQueuePanel />
+
       <main className="flex-grow px-3 sm:px-4 py-6 sm:py-10">
         <div className="max-w-5xl mx-auto space-y-8 sm:space-y-12">
 
@@ -419,7 +426,8 @@ const Index = () => {
             <DropZone
               variant="hero"
               onFile={(f) => {
-                probeAndStore(f); // probe + cache metadata immediately
+                probeAndStore(f);
+                projectStore.setSource(f.name);
                 (window as any).__quickDropFile = f;
                 openTool("convert");
               }}

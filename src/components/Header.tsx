@@ -4,6 +4,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import CommandPalette from "@/components/CommandPalette";
 
 const NAV = [
   { to: "/", label: "Home" },
@@ -60,6 +61,13 @@ const Header = () => {
             </Link>
           ))}
         </nav>
+
+        {/* Command palette — desktop only */}
+        <div className="hidden sm:block">
+          <CommandPalette onOpenTool={(toolId, preset) => {
+            window.dispatchEvent(new CustomEvent("openTool", { detail: { toolId, preset } }));
+          }} />
+        </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           {/* Theme toggle */}

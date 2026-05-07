@@ -17,6 +17,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
 import { cleanupFiles, safeDelete } from "@/lib/ffmpeg-pipeline";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
 
@@ -91,7 +92,10 @@ const TimelineTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "timeline", toolLabel: "Timeline", icon: "✂️", fileName: video.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const vExt = video.name.split(".").pop();
@@ -148,11 +152,15 @@ const TimelineTool = () => {
       await safeDelete(ff, `input.${vExt}`);
       const blob = await readOutputBlob(ff, finalFile, "video/mp4");
       const url = URL.createObjectURL(blob);
+      const filename = `${base}-timeline.mp4`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-timeline.mp4`, size: formatBytes(blob.size) });
+      setResult({ url, filename, size: sizeStr });
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "timeline", "Timeline");
       toast({ title: "✓ Done!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

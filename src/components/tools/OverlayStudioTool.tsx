@@ -15,6 +15,7 @@ import { Trash2, ImagePlus, Type } from "lucide-react";
 import VideoPreview from "@/components/VideoPreview";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 type Align = "left" | "center" | "right";
 type VPos = "top" | "middle" | "bottom";
@@ -123,7 +124,10 @@ const OverlayStudioTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "overlay", toolLabel: "Overlay Studio", icon: "🧩", fileName: video.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const vExt = video.name.split(".").pop();
@@ -175,11 +179,15 @@ const OverlayStudioTool = () => {
       const blob = await readOutputBlob(ff, currentInput, "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      const filename = `${base}-overlay.mp4`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-overlay.mp4`, size: formatBytes(blob.size) });
+      setResult({ url, filename, size: sizeStr });
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "overlay", "Overlay Studio");
       toast({ title: "✓ Done!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

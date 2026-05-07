@@ -9,7 +9,8 @@ import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } fr
 import { detectDevice, recommendedFormat, recommendedResolution } from "@/lib/device";
 import { CONVERT_PRESETS } from "@/lib/presets";
 import { sessionStore } from "@/lib/session-store";
-import { buildFFmpegArgs, getResolutionFilter, revokeUrls, safeDelete, type RenderMode } from "@/lib/ffmpeg-pipeline";
+import { buildFFmpegArgs, getResolutionFilter, safeDelete, type RenderMode } from "@/lib/ffmpeg-pipeline";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 import DropZone from "@/components/DropZone";
 import VideoPreview from "@/components/VideoPreview";
 import TrimControl from "@/components/TrimControl";
@@ -180,9 +181,15 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
     const inp = `in.${file.name.split(".").pop()}`;
     const out = `out.${outExt}`;
 
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "convert", toolLabel: "Convert", icon: "🔄", fileName: file.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100);
+      setProgress(pct);
+      updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
+    const jobId = startJob({ toolId: "convert", toolLabel: "Convert", icon: "🔄", fileName: file.name });
       await ff.writeFile(inp, await fetchFile(file));
 
       // Build video filters
@@ -220,12 +227,16 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
       const blob = await readOutputBlob(ff, out, mimeMap[outExt] || "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");
+      const filename = `${base}-mianconvert.${outExt}`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-mianconvert.${outExt}`, size: formatBytes(blob.size), rawSize: blob.size });
+      setResult({ url, filename, size: sizeStr, rawSize: blob.size });
       sessionStore.markDone("convert");
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "convert", "Convert");
       toast({ title: "✓ Done!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Conversion failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

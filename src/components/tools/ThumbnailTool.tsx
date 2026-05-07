@@ -15,6 +15,7 @@ import { X, Download, Camera, Type } from "lucide-react";
 import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, finishJob, failJob } from "@/lib/job-tracker";
 
 type ExportSize = "1280x720" | "1920x1080" | "800x450" | "original";
 
@@ -62,6 +63,7 @@ const ThumbnailTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(10); setThumbnail(null); setDone(false);
     const ff = ffmpeg.current!;
+    const jobId = startJob({ toolId: "thumbnail", toolLabel: "Thumbnail", icon: "📸", fileName: video.name });
     try {
       const vExt = video.name.split(".").pop();
       await ff.writeFile(`input.${vExt}`, await fetchFile(video));
@@ -96,12 +98,15 @@ const ThumbnailTool = () => {
       const blob = await readOutputBlob(ff, "thumb.jpg", "image/jpeg");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      const thumbName = `${base}-thumbnail.jpg`;
       setProgress(100); setDone(true);
-      setThumbnail({ url, name: `${base}-thumbnail.jpg` });
+      setThumbnail({ url, name: thumbName });
       sessionStore.markDone("thumbnail");
+      finishJob(jobId, { url, name: thumbName, size: formatBytes(blob.size), rawSize: blob.size }, "thumbnail", "Thumbnail");
       toast({ title: "✓ Thumbnail extracted!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       setProcessing(false);

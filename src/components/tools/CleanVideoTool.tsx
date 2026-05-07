@@ -16,6 +16,7 @@ import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 type RemoveMode = "delogo" | "blur";
 
@@ -74,7 +75,10 @@ const CleanVideoTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "clean", toolLabel: "Clean Video", icon: "🧹", fileName: video.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const vExt = video.name.split(".").pop();
@@ -104,11 +108,15 @@ const CleanVideoTool = () => {
       const blob = await readOutputBlob(ff, "cleaned.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      const filename = `${base}-cleaned.mp4`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-cleaned.mp4`, size: formatBytes(blob.size) });
+      setResult({ url, filename, size: sizeStr });
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "clean", "Clean Video");
       toast({ title: "✓ Cleaned!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

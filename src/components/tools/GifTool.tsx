@@ -13,6 +13,7 @@ import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { AlertTriangle, RefreshCw } from "lucide-react";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 // Estimate GIF size in MB before processing
 const estimateGifMB = (durationS: number, widthPx: number, fps: number) =>
@@ -60,7 +61,10 @@ const GifTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "gif", toolLabel: "GIF Maker", icon: "🎞", fileName: video.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const vExt = video.name.split(".").pop();
@@ -90,12 +94,16 @@ const GifTool = () => {
       const blob = await readOutputBlob(ff, "output.gif", "image/gif");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      const filename = `${base}.gif`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}.gif`, size: formatBytes(blob.size), preview: url });
-      toast({ title: "✓ GIF created!", description: formatBytes(blob.size) });
+      setResult({ url, filename, size: sizeStr, preview: url });
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "gif", "GIF Maker");
+      toast({ title: "✓ GIF created!", description: sizeStr });
     } catch (e) {
       const msg = String(e);
       setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "GIF failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

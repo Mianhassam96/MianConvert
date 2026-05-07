@@ -16,6 +16,7 @@ import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, finishJob, failJob } from "@/lib/job-tracker";
 
 type Mode = "adjust" | "mute" | "extract" | "convert";
 type OutputFmt = "mp3" | "wav" | "aac";
@@ -63,6 +64,7 @@ const AudioStudioTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
+    const jobId = startJob({ toolId: "audiostudio", toolLabel: "Audio Studio", icon: "🎵", fileName: file.name });
 
     let fakeTimer: ReturnType<typeof setInterval> | null = null;
     if (mode === "mute") {
@@ -78,13 +80,16 @@ const AudioStudioTool = () => {
       const base = file.name.replace(/\.[^.]+$/, "");
 
       if (mode === "mute") {
-        // Stream copy video, remove audio — instant
         await ff.exec(["-i", `input.${ext}`, "-an", "-c:v", "copy", "muted.mp4"]);
         if (fakeTimer) clearInterval(fakeTimer);
         await ff.deleteFile(`input.${ext}`);
         const blob = await readOutputBlob(ff, "muted.mp4", "video/mp4");
+        const url = URL.createObjectURL(blob);
+        const filename = `${base}-muted.mp4`;
+        const sizeStr = formatBytes(blob.size);
         setProgress(100); setDone(true);
-        setResult({ url: URL.createObjectURL(blob), filename: `${base}-muted.mp4`, size: formatBytes(blob.size) });
+        setResult({ url, filename, size: sizeStr });
+        finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "audiostudio", "Audio Studio");
         toast({ title: "✓ Audio removed!" });
 
       } else if (mode === "extract") {
@@ -98,8 +103,12 @@ const AudioStudioTool = () => {
         await ff.deleteFile(`input.${ext}`);
         const mimeMap: Record<OutputFmt, string> = { mp3: "audio/mpeg", wav: "audio/wav", aac: "audio/aac" };
         const blob = await readOutputBlob(ff, outFile, mimeMap[outputFmt]);
+        const url = URL.createObjectURL(blob);
+        const filename = `${base}-audio.${outputFmt}`;
+        const sizeStr = formatBytes(blob.size);
         setDone(true);
-        setResult({ url: URL.createObjectURL(blob), filename: `${base}-audio.${outputFmt}`, size: formatBytes(blob.size) });
+        setResult({ url, filename, size: sizeStr });
+        finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "audiostudio", "Audio Studio");
         toast({ title: "✓ Audio extracted!" });
 
       } else if (mode === "convert") {
@@ -113,8 +122,12 @@ const AudioStudioTool = () => {
         await ff.deleteFile(`input.${ext}`);
         const mimeMap: Record<OutputFmt, string> = { mp3: "audio/mpeg", wav: "audio/wav", aac: "audio/aac" };
         const blob = await readOutputBlob(ff, outFile, mimeMap[outputFmt]);
+        const url = URL.createObjectURL(blob);
+        const filename = `${base}.${outputFmt}`;
+        const sizeStr = formatBytes(blob.size);
         setDone(true);
-        setResult({ url: URL.createObjectURL(blob), filename: `${base}.${outputFmt}`, size: formatBytes(blob.size) });
+        setResult({ url, filename, size: sizeStr });
+        finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "audiostudio", "Audio Studio");
         toast({ title: "✓ Converted!" });
 
       } else {
@@ -141,13 +154,18 @@ const AudioStudioTool = () => {
         await ff.deleteFile(`input.${ext}`);
         const mime = isVideoFile ? "video/mp4" : (outputFmt === "mp3" ? "audio/mpeg" : outputFmt === "wav" ? "audio/wav" : "audio/aac");
         const blob = await readOutputBlob(ff, outFile, mime);
+        const url = URL.createObjectURL(blob);
+        const filename = `${base}-adjusted.${isVideoFile ? "mp4" : outputFmt}`;
+        const sizeStr = formatBytes(blob.size);
         setDone(true);
-        setResult({ url: URL.createObjectURL(blob), filename: `${base}-adjusted.${isVideoFile ? "mp4" : outputFmt}`, size: formatBytes(blob.size) });
+        setResult({ url, filename, size: sizeStr });
+        finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "audiostudio", "Audio Studio");
         toast({ title: "✓ Done!" });
       }
     } catch (e) {
       if (fakeTimer) clearInterval(fakeTimer);
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       setProcessing(false);

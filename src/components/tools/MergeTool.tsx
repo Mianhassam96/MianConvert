@@ -7,6 +7,7 @@ import ResultCard from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { UploadCloud, X, GripVertical, ArrowUp, ArrowDown, AlertTriangle, RefreshCw, Zap } from "lucide-react";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 const getExt = (f: File) => f.name.split(".").pop()?.toLowerCase() || "mp4";
 
@@ -66,7 +67,10 @@ const MergeTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "merge", toolLabel: "Merge", icon: "🔗", fileName: `${files.length} videos` });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
 
     try {
@@ -101,6 +105,7 @@ const MergeTool = () => {
       const url = URL.createObjectURL(blob);
       setDone(true);
       setResult({ url, filename: "merged-mianconvert.mp4", size: formatBytes(blob.size) });
+      finishJob(jobId, { url, name: "merged-mianconvert.mp4", size: formatBytes(blob.size), rawSize: blob.size }, "merge", "Merge");
       toast({ title: "✓ Merged!", description: `${files.length} videos combined (stream copy).` });
 
     } catch (firstErr) {
@@ -133,11 +138,13 @@ const MergeTool = () => {
         const url = URL.createObjectURL(blob);
         setDone(true);
         setResult({ url, filename: "merged-mianconvert.mp4", size: formatBytes(blob.size) });
+        finishJob(jobId, { url, name: "merged-mianconvert.mp4", size: formatBytes(blob.size), rawSize: blob.size }, "merge", "Merge");
         toast({ title: "✓ Merged!", description: `${files.length} videos combined (re-encoded for compatibility).` });
 
       } catch (e) {
         const msg = String(e);
         setError(msg);
+        failJob(jobId, msg);
         toast({ variant: "destructive", title: "Merge failed", description: msg });
       }
     } finally {

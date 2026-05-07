@@ -17,6 +17,7 @@ import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 type RatioPreset = "custom" | "16:9" | "9:16" | "1:1" | "4:3" | "3:4" | "21:9";
 type ResPreset = "custom" | "3840x2160" | "1920x1080" | "1280x720" | "854x480" | "640x360";
@@ -110,7 +111,10 @@ const ResizeTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "resize", toolLabel: "Resize", icon: "📐", fileName: video.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const vExt = video.name.split(".").pop();
@@ -135,11 +139,15 @@ const ResizeTool = () => {
       const blob = await readOutputBlob(ff, "resized.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = video.name.replace(/\.[^.]+$/, "");
+      const filename = `${base}-resized.mp4`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-resized.mp4`, size: formatBytes(blob.size) });
+      setResult({ url, filename, size: sizeStr });
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "resize", "Resize");
       toast({ title: "✓ Resized!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

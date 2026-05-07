@@ -12,6 +12,7 @@ import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { FileText, Upload, Info, AlertTriangle, RefreshCw } from "lucide-react";
 import { sessionStore } from "@/lib/session-store";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 type FontSize = "20" | "28" | "36" | "48";
 type SubPosition = "bottom" | "top" | "middle";
@@ -98,7 +99,10 @@ const SubtitleTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "subtitle", toolLabel: "Subtitle", icon: "💬", fileName: video.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
 
     const vExt = video.name.split(".").pop();
@@ -148,13 +152,17 @@ const SubtitleTool = () => {
       await ff.deleteFile(`input.${vExt}`);
       const blob = await readOutputBlob(ff, "subtitled.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
+      const filename = `${base}-subtitled.mp4`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-subtitled.mp4`, size: formatBytes(blob.size) });
+      setResult({ url, filename, size: sizeStr });
       sessionStore.markDone("subtitle");
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "subtitle", "Subtitle");
       toast({ title: "✓ Subtitles burned in!" });
     } catch (e) {
       const msg = String(e);
       setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

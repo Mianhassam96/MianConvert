@@ -11,6 +11,7 @@ import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import ResultCard, { buildNextActions } from "@/components/ResultCard";
 import { Zap, CheckCircle } from "lucide-react";
 import AnimatedButton from "@/components/ui/AnimatedButton";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 
 interface DetectedInfo {
   format: string;
@@ -94,7 +95,10 @@ const AutoOptimizeTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…" }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false); setError(null);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "autooptimize", toolLabel: "Auto Optimize", icon: "⚡", fileName: file.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100); setProgress(pct); updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const ext = file.name.split(".").pop() ?? "mp4";
@@ -111,11 +115,15 @@ const AutoOptimizeTool = () => {
       const blob = await readOutputBlob(ff, "optimized.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");
+      const filename = `${base}-optimized.mp4`;
+      const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename: `${base}-optimized.mp4`, size: formatBytes(blob.size), rawSize: blob.size });
+      setResult({ url, filename, size: sizeStr, rawSize: blob.size });
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "autooptimize", "Auto Optimize");
       toast({ title: "✓ Optimized!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

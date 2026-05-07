@@ -8,6 +8,7 @@ import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } fr
 import { COMPRESS_PRESETS } from "@/lib/presets";
 import { sessionStore } from "@/lib/session-store";
 import { buildFFmpegArgs, getResolutionFilter, safeDelete } from "@/lib/ffmpeg-pipeline";
+import { startJob, updateJob, finishJob, failJob } from "@/lib/job-tracker";
 import DropZone from "@/components/DropZone";
 import VideoPreview from "@/components/VideoPreview";
 import ResultCard, { buildNextActions } from "@/components/ResultCard";
@@ -92,7 +93,12 @@ const CompressTool = () => {
     if (!loaded) { toast({ title: "Loading FFmpeg…", description: "First run takes ~5s." }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
     const ff = ffmpeg.current!;
-    const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
+    const jobId = startJob({ toolId: "compress", toolLabel: "Compress", icon: "📦", fileName: file.name });
+    const handler = ({ progress: p }: { progress: number }) => {
+      const pct = Math.round(p * 100);
+      setProgress(pct);
+      updateJob(jobId, pct);
+    };
     ff.on("progress", handler);
     try {
       const ext = file.name.split(".").pop() || "mp4";
@@ -120,12 +126,16 @@ const CompressTool = () => {
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");
       const saved = file.size > blob.size ? ` — saved ${formatBytes(file.size - blob.size)}` : "";
+      const filename = `${base}-compressed.mp4`;
+      const sizeStr = `${formatBytes(blob.size)}${saved}`;
       setDone(true);
-      setResult({ url, filename: `${base}-compressed.mp4`, size: `${formatBytes(blob.size)}${saved}`, rawSize: blob.size });
+      setResult({ url, filename, size: sizeStr, rawSize: blob.size });
       sessionStore.markDone("compress");
+      finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "compress", "Compress");
       toast({ title: "✓ Compressed!" });
     } catch (e) {
       const msg = String(e); setError(msg);
+      failJob(jobId, msg);
       toast({ variant: "destructive", title: "Compression failed", description: msg });
     } finally {
       ff.off("progress", handler); setProcessing(false);

@@ -1,7 +1,14 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Download, RefreshCw, Share2, CheckCheck, FileCheck2 } from "lucide-react";
+import { Download, RefreshCw, Share2, CheckCheck, FileCheck2, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import AnimatedButton from "@/components/ui/AnimatedButton";
+
+interface NextAction {
+  icon: string;
+  label: string;
+  toolId: string;
+  preset?: string;
+}
 
 interface ResultCardProps {
   url: string;
@@ -10,9 +17,43 @@ interface ResultCardProps {
   onAgain: () => void;
   onReset: () => void;
   preview?: string;
+  /** Next actions to show after result — drives tool chaining */
+  nextActions?: NextAction[];
+  onOpenTool?: (toolId: string, preset?: string) => void;
 }
 
-const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCardProps) => {
+/** Build context-aware next actions based on filename/size */
+export const buildNextActions = (
+  filename: string,
+  rawBytes: number,
+  toolId: string
+): NextAction[] => {
+  const actions: NextAction[] = [];
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  const mb = rawBytes / (1024 * 1024);
+
+  // Don't suggest the same tool
+  if (toolId !== "compress" && mb > 20) {
+    actions.push({ icon: "📦", label: "Reduce size more", toolId: "compress" });
+  }
+  if (toolId !== "convert" && ["mp4", "webm", "mov", "avi"].includes(ext)) {
+    actions.push({ icon: "📱", label: "Optimize for TikTok", toolId: "convert", preset: "tiktok" });
+  }
+  if (toolId !== "subtitle") {
+    actions.push({ icon: "💬", label: "Add subtitles", toolId: "subtitle" });
+  }
+  if (toolId !== "audiostudio") {
+    actions.push({ icon: "🎧", label: "Extract audio", toolId: "audiostudio" });
+  }
+  if (toolId !== "thumbnail") {
+    actions.push({ icon: "📸", label: "Create thumbnail", toolId: "thumbnail" });
+  }
+  return actions.slice(0, 4);
+};
+
+const ResultCard = ({
+  url, filename, size, onAgain, onReset, preview, nextActions, onOpenTool,
+}: ResultCardProps) => {
   const [shared, setShared] = useState(false);
 
   const download = () => {
@@ -20,7 +61,6 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
     a.href = url; a.download = filename; a.click();
   };
 
-  // Share via Web Share API if available, otherwise download again
   const share = async () => {
     if (navigator.share) {
       try {
@@ -30,14 +70,8 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
         await navigator.share({ files: [file], title: filename });
         setShared(true);
         setTimeout(() => setShared(false), 2200);
-      } catch {
-        // User cancelled or not supported — fallback to download
-        download();
-      }
-    } else {
-      // Fallback: trigger download
-      download();
-    }
+      } catch { download(); }
+    } else { download(); }
   };
 
   return (
@@ -64,9 +98,7 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
           <p className="font-bold text-white text-sm">Done! Your file is ready</p>
           <p className="text-green-100 text-xs truncate">{size} · {filename.split(".").pop()?.toUpperCase()}</p>
         </div>
-        <motion.div
-          animate={{ scale: [1, 1.15, 1] }}
-          transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}>
+        <motion.div animate={{ scale: [1, 1.15, 1] }} transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 2 }}>
           <FileCheck2 className="w-5 h-5 text-white/80 shrink-0" />
         </motion.div>
       </div>
@@ -90,7 +122,6 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
             <p className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-100 truncate">{filename}</p>
             <p className="text-[10px] sm:text-xs text-gray-400">{size}</p>
           </div>
-          {/* Share / Web Share API */}
           <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={share}
             title={navigator.share ? "Share file" : "Download again"}
             className="p-1.5 sm:p-2 rounded-lg bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 hover:border-violet-300 dark:hover:border-violet-600 transition-colors shrink-0">
@@ -101,13 +132,46 @@ const ResultCard = ({ url, filename, size, onAgain, onReset, preview }: ResultCa
               }
             </AnimatePresence>
           </motion.button>
-          {/* Download */}
           <motion.button whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }} onClick={download}
             className="flex items-center gap-1.5 btn-gradient ripple-btn text-white text-xs font-bold px-3 sm:px-4 py-2 rounded-lg shadow-md shadow-violet-500/25 shrink-0">
             <Download className="w-3.5 h-3.5" />
             <span>Download</span>
           </motion.button>
         </div>
+
+        {/* ── POST-CONVERSION FLOW ENGINE ── */}
+        {nextActions && nextActions.length > 0 && onOpenTool && (
+          <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.35 }}
+            className="space-y-2"
+          >
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              ✅ Your video is ready — what do you want next?
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {nextActions.map((action, i) => (
+                <motion.button
+                  key={action.toolId + (action.preset ?? "")}
+                  initial={{ opacity: 0, scale: 0.92 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.35 + i * 0.06 }}
+                  whileHover={{ y: -2, scale: 1.02 }}
+                  whileTap={{ scale: 0.97 }}
+                  onClick={() => onOpenTool(action.toolId, action.preset)}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 border-violet-200 dark:border-violet-800/60 bg-violet-50/60 dark:bg-violet-950/20 hover:border-violet-400 dark:hover:border-violet-600 hover:bg-violet-50 dark:hover:bg-violet-950/40 transition-all text-left group"
+                >
+                  <span className="text-base shrink-0">{action.icon}</span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 group-hover:text-violet-700 dark:group-hover:text-violet-300 transition-colors leading-tight flex-1">
+                    {action.label}
+                  </span>
+                  <ChevronRight className="w-3 h-3 text-gray-400 group-hover:text-violet-500 shrink-0 transition-colors" />
+                </motion.button>
+              ))}
+            </div>
+          </motion.div>
+        )}
 
         {/* Actions */}
         <div className="grid grid-cols-2 gap-2">

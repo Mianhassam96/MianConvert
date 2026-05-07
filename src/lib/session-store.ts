@@ -1,6 +1,7 @@
 /**
  * Global session store — keeps the last uploaded file in memory
  * so users can switch tools without re-uploading.
+ * Also tracks completed tools for the Session Timeline.
  */
 
 type Listener = () => void;
@@ -14,6 +15,7 @@ export interface SessionState {
   width: number;
   height: number;
   suggestions: string[];
+  completedTools: string[];
 }
 
 const state: SessionState = {
@@ -23,6 +25,7 @@ const state: SessionState = {
   width: 0,
   height: 0,
   suggestions: [],
+  completedTools: [],
 };
 
 const buildSuggestions = (file: File, duration: number, width: number, height: number): string[] => {
@@ -48,7 +51,15 @@ export const sessionStore = {
     state.width = width;
     state.height = height;
     state.suggestions = buildSuggestions(file, duration, width, height);
+    // Don't reset completedTools on file change — keep session history
     notify();
+  },
+
+  markDone: (toolId: string) => {
+    if (!state.completedTools.includes(toolId)) {
+      state.completedTools = [...state.completedTools, toolId];
+      notify();
+    }
   },
 
   clear: () => {
@@ -59,6 +70,7 @@ export const sessionStore = {
     state.width = 0;
     state.height = 0;
     state.suggestions = [];
+    state.completedTools = [];
     notify();
   },
 

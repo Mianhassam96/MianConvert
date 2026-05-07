@@ -12,7 +12,7 @@ import { sessionStore } from "@/lib/session-store";
 import DropZone from "@/components/DropZone";
 import VideoPreview from "@/components/VideoPreview";
 import TrimControl from "@/components/TrimControl";
-import ResultCard from "@/components/ResultCard";
+import ResultCard, { buildNextActions } from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import { Scissors, RotateCcw, FlipHorizontal, Zap, Settings2 } from "lucide-react";
@@ -91,7 +91,7 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ url: string; filename: string; size: string } | null>(null);
+  const [result, setResult] = useState<{ url: string; filename: string; size: string; rawSize: number } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [autoDetectMsg, setAutoDetectMsg] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<string>(initialPreset ?? "original");
@@ -212,7 +212,8 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");
       setDone(true);
-      setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size) });
+      setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size), rawSize: blob.size });
+      sessionStore.markDone("convert");
       toast({ title: "✓ Done!" });
     } catch (e) {
       const msg = String(e); setError(msg);
@@ -413,6 +414,10 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
 
       {result && (
         <ResultCard url={result.url} filename={result.filename} size={result.size}
+          nextActions={buildNextActions(result.filename, result.rawSize, "convert")}
+          onOpenTool={(toolId, preset) => {
+            window.dispatchEvent(new CustomEvent("openTool", { detail: { toolId, preset } }));
+          }}
           onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setProgress(0); setDone(false); }}
           onReset={reset} />
       )}

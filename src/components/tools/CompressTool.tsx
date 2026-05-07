@@ -9,7 +9,7 @@ import { COMPRESS_PRESETS } from "@/lib/presets";
 import { sessionStore } from "@/lib/session-store";
 import DropZone from "@/components/DropZone";
 import VideoPreview from "@/components/VideoPreview";
-import ResultCard from "@/components/ResultCard";
+import ResultCard, { buildNextActions } from "@/components/ResultCard";
 import AnimatedButton from "@/components/ui/AnimatedButton";
 import AnimatedProgress from "@/components/ui/AnimatedProgress";
 import ErrorRecovery from "@/components/ErrorRecovery";
@@ -111,6 +111,7 @@ const CompressTool = () => {
       const saved = file.size > blob.size ? ` — saved ${formatBytes(file.size - blob.size)}` : "";
       setDone(true);
       setResult({ url, filename: `${base}-compressed.mp4`, size: `${formatBytes(blob.size)}${saved}`, rawSize: blob.size });
+      sessionStore.markDone("compress");
       toast({ title: "✓ Compressed!" });
     } catch (e) {
       const msg = String(e); setError(msg);
@@ -288,6 +289,10 @@ const CompressTool = () => {
             </div>
           )}
           <ResultCard url={result.url} filename={result.filename} size={result.size}
+            nextActions={buildNextActions(result.filename, result.rawSize, "compress")}
+            onOpenTool={(toolId, preset) => {
+              window.dispatchEvent(new CustomEvent("openTool", { detail: { toolId, preset } }));
+            }}
             onAgain={() => { URL.revokeObjectURL(result.url); setResult(null); setDone(false); }}
             onReset={reset} />
         </motion.div>

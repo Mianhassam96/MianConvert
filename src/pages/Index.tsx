@@ -5,6 +5,9 @@ import Footer from "@/components/Footer";
 import DropZone from "@/components/DropZone";
 import UseCaseBar from "@/components/UseCaseBar";
 import SmartSuggestions from "@/components/SmartSuggestions";
+import LiveStats from "@/components/LiveStats";
+import SessionTimeline from "@/components/SessionTimeline";
+import PreviewIntelligence from "@/components/PreviewIntelligence";
 import { Link } from "react-router-dom";
 import { fadeUp, stagger, scaleIn, tabPanel } from "@/lib/motion";
 import { Shield, Zap, Globe, Search, Star, X, ChevronRight, Lock } from "lucide-react";
@@ -24,6 +27,7 @@ import AudioStudioTool from "@/components/tools/AudioStudioTool";
 import MergeTool from "@/components/tools/MergeTool";
 import SubtitleTool from "@/components/tools/SubtitleTool";
 import ThumbnailTool from "@/components/tools/ThumbnailTool";
+import AutoOptimizeTool from "@/components/tools/AutoOptimizeTool";
 
 interface ToolDef {
   id: string;
@@ -53,10 +57,10 @@ const TOOL_SECTIONS = [
     accent: "from-blue-600 to-cyan-500",
     cols: "grid-cols-1 sm:grid-cols-2",
     tools: [
-      { id: "convert",  icon: "🔄", label: "Convert",   desc: "MP4, WebM, AVI, MOV, MKV, MP3, WAV",        tags: ["convert","format","mp4","webm","mp3"],    gradient: "from-blue-500 to-cyan-500",   iconBg: "bg-blue-100 dark:bg-blue-900/40",  component: <ConvertTool /> },
-      { id: "compress", icon: "📦", label: "Compress",  desc: "Reduce file size without losing quality",    tags: ["compress","size","reduce"],              gradient: "from-cyan-500 to-teal-500",   iconBg: "bg-cyan-100 dark:bg-cyan-900/40",  component: <CompressTool /> },
-      { id: "resize",   icon: "📐", label: "Resize",    desc: "Resolution, aspect ratio & letterbox",       tags: ["resize","resolution","aspect","scale"],   gradient: "from-teal-500 to-emerald-500",iconBg: "bg-teal-100 dark:bg-teal-900/40",  component: <ResizeTool /> },
-      { id: "gif",      icon: "🎞", label: "GIF Maker", desc: "Convert video to animated GIF",              tags: ["gif","animate","convert"],               gradient: "from-sky-500 to-blue-600",    iconBg: "bg-sky-100 dark:bg-sky-900/40",    component: <GifTool /> },
+      { id: "convert",      icon: "🔄", label: "Convert",        desc: "MP4, WebM, AVI, MOV, MKV, MP3, WAV",        tags: ["convert","format","mp4","webm","mp3"],    gradient: "from-blue-500 to-cyan-500",    iconBg: "bg-blue-100 dark:bg-blue-900/40",   component: <ConvertTool /> },
+      { id: "compress",     icon: "📦", label: "Compress",       desc: "Reduce file size without losing quality",    tags: ["compress","size","reduce"],              gradient: "from-cyan-500 to-teal-500",    iconBg: "bg-cyan-100 dark:bg-cyan-900/40",   component: <CompressTool /> },
+      { id: "resize",       icon: "📐", label: "Resize",         desc: "Resolution, aspect ratio & letterbox",       tags: ["resize","resolution","aspect","scale"],   gradient: "from-teal-500 to-emerald-500", iconBg: "bg-teal-100 dark:bg-teal-900/40",   component: <ResizeTool /> },
+      { id: "gif",          icon: "🎞", label: "GIF Maker",      desc: "Convert video to animated GIF",              tags: ["gif","animate","convert"],               gradient: "from-sky-500 to-blue-600",     iconBg: "bg-sky-100 dark:bg-sky-900/40",     component: <GifTool /> },
     ] as ToolDef[],
   },
   {
@@ -72,9 +76,17 @@ const TOOL_SECTIONS = [
     accent: "from-orange-500 to-amber-500",
     cols: "grid-cols-1 sm:grid-cols-3",
     tools: [
-      { id: "merge",     icon: "🔗", label: "Merge",     desc: "Combine multiple videos into one",    tags: ["merge","combine","join"],                gradient: "from-orange-500 to-amber-500",  iconBg: "bg-orange-100 dark:bg-orange-900/40", component: <MergeTool /> },
-      { id: "subtitle",  icon: "💬", label: "Subtitle",  desc: "Burn SRT captions into video",        tags: ["subtitle","caption","srt","text"],       gradient: "from-amber-500 to-yellow-500",  iconBg: "bg-amber-100 dark:bg-amber-900/40",  component: <SubtitleTool /> },
-      { id: "thumbnail", icon: "🖼", label: "Thumbnail", desc: "Extract frame & add title text",      tags: ["thumbnail","frame","image","jpg"],       gradient: "from-yellow-500 to-orange-500", iconBg: "bg-yellow-100 dark:bg-yellow-900/40", component: <ThumbnailTool /> },
+      { id: "merge",        icon: "🔗", label: "Merge",          desc: "Combine multiple videos into one",    tags: ["merge","combine","join"],                gradient: "from-orange-500 to-amber-500",  iconBg: "bg-orange-100 dark:bg-orange-900/40", component: <MergeTool /> },
+      { id: "subtitle",     icon: "💬", label: "Subtitle",       desc: "Burn SRT captions into video",        tags: ["subtitle","caption","srt","text"],       gradient: "from-amber-500 to-yellow-500",  iconBg: "bg-amber-100 dark:bg-amber-900/40",  component: <SubtitleTool /> },
+      { id: "thumbnail",    icon: "🖼", label: "Thumbnail",      desc: "Extract frame & add title text",      tags: ["thumbnail","frame","image","jpg"],       gradient: "from-yellow-500 to-orange-500", iconBg: "bg-yellow-100 dark:bg-yellow-900/40", component: <ThumbnailTool /> },
+    ] as ToolDef[],
+  },
+  {
+    id: "smart", label: "Smart Tools", emoji: "🧠",
+    accent: "from-violet-600 to-fuchsia-600",
+    cols: "grid-cols-1",
+    tools: [
+      { id: "autooptimize", icon: "⚡", label: "Auto Optimize",  desc: "1-click: detect & apply best format, compression & resolution", tags: ["auto","optimize","smart","1click"], gradient: "from-violet-600 to-fuchsia-600", iconBg: "bg-violet-100 dark:bg-violet-900/40", component: <AutoOptimizeTool /> },
     ] as ToolDef[],
   },
 ];
@@ -88,7 +100,7 @@ const TRUST_ITEMS = [
 ];
 
 const STATS = [
-  { value: "12",   label: "Tools",    emoji: "🛠" },
+  { value: "13",   label: "Tools",    emoji: "🛠" },
   { value: "10+",  label: "Formats",  emoji: "🎞" },
   { value: "0",    label: "Uploads",  emoji: "🔒" },
   { value: "100%", label: "Private",  emoji: "✅" },
@@ -220,6 +232,16 @@ const Index = () => {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
+  // Listen for openTool events dispatched from ResultCard next-actions
+  useEffect(() => {
+    const handler = (e: Event) => {
+      const { toolId, preset } = (e as CustomEvent).detail;
+      if (toolId) openTool(toolId, preset);
+    };
+    window.addEventListener("openTool", handler);
+    return () => window.removeEventListener("openTool", handler);
+  }, []);
+
   const activeDef = ALL_TOOLS.find(t => t.id === activeTool);
 
   const searchLower = search.toLowerCase().trim();
@@ -242,6 +264,15 @@ const Index = () => {
     if (activeDef.id === "convert") return <ConvertTool initialPreset={activePreset} />;
     return activeDef.component;
   };
+
+  // Build session timeline steps
+  const TIMELINE_STEPS = [
+    { id: "upload",      icon: "📂", label: "Uploaded",   done: !!session.file },
+    { id: "convert",     icon: "🔄", label: "Converted",  done: session.completedTools.includes("convert") },
+    { id: "compress",    icon: "📦", label: "Compressed", done: session.completedTools.includes("compress") },
+    { id: "subtitle",    icon: "💬", label: "Subtitled",  done: session.completedTools.includes("subtitle") },
+    { id: "thumbnail",   icon: "📸", label: "Thumbnail",  done: session.completedTools.includes("thumbnail") },
+  ];
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-[#0a0b14] transition-colors relative overflow-x-hidden">
@@ -318,7 +349,33 @@ const Index = () => {
               <span className="text-gray-300 dark:text-gray-700">|</span>
               <Link to="/contact" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Contact</Link>
             </motion.div>
+
+            {/* Live Stats */}
+            <motion.div variants={fadeUp}>
+              <LiveStats />
+            </motion.div>
           </motion.section>
+
+          {/* ── AUTO OPTIMIZE HERO BUTTON ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+            className="flex flex-col sm:flex-row items-center gap-3"
+          >
+            <motion.button
+              whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
+              onClick={() => openTool("autooptimize")}
+              className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold text-white text-sm shadow-xl shadow-violet-500/30 transition-all"
+              style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #d946ef 100%)", backgroundSize: "200% 200%", animation: "gradientShift 4s ease infinite" }}
+            >
+              <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>⚡</motion.span>
+              Auto Optimize (1 Click)
+              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-semibold">NEW</span>
+            </motion.button>
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center sm:text-left">
+              Detects format, size & resolution — applies best settings automatically
+            </p>
+          </motion.div>
 
           {/* ── HERO DROP ZONE ── */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3, duration: 0.5 }}>
@@ -337,7 +394,15 @@ const Index = () => {
             {session.file && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}>
+                exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}
+                className="space-y-3">
+                {/* Preview Intelligence */}
+                <PreviewIntelligence
+                  file={session.file}
+                  duration={session.duration}
+                  width={session.width}
+                  height={session.height}
+                />
                 <SmartSuggestions
                   file={session.file}
                   duration={session.duration}
@@ -345,6 +410,11 @@ const Index = () => {
                   height={session.height}
                   suggestions={session.suggestions}
                   onOpen={openTool}
+                />
+                {/* Session Timeline */}
+                <SessionTimeline
+                  steps={TIMELINE_STEPS}
+                  onOpenTool={openTool}
                 />
               </motion.div>
             )}

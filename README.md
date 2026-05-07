@@ -111,5 +111,5 @@ MIT License
 
 Built by **MultiMian** — creating tools for creators and developers.
 
-[Live Demo → MianConvert](https://mianhassam96.github.io/MianConvert/)
+[Click to visit → MianConvert](https://mianhassam96.github.io/MianConvert/)
 

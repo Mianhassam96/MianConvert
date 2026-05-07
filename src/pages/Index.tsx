@@ -1,4 +1,4 @@
-﻿import { useState, useRef, useEffect } from "react";
+﻿import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
@@ -18,20 +18,22 @@ import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
 import { useSession } from "@/hooks/use-session";
 import { workspaceMemory } from "@/lib/workspace-memory";
+import { probeAndStore } from "@/lib/ffmpeg-run";
 
-import ProEditorTool from "@/components/tools/ProEditorTool";
-import TimelineTool from "@/components/tools/TimelineTool";
-import OverlayStudioTool from "@/components/tools/OverlayStudioTool";
-import CleanVideoTool from "@/components/tools/CleanVideoTool";
-import ConvertTool from "@/components/tools/ConvertTool";
-import CompressTool from "@/components/tools/CompressTool";
-import ResizeTool from "@/components/tools/ResizeTool";
-import GifTool from "@/components/tools/GifTool";
-import AudioStudioTool from "@/components/tools/AudioStudioTool";
-import MergeTool from "@/components/tools/MergeTool";
-import SubtitleTool from "@/components/tools/SubtitleTool";
-import ThumbnailTool from "@/components/tools/ThumbnailTool";
-import AutoOptimizeTool from "@/components/tools/AutoOptimizeTool";
+// ── Lazy-loaded tool components (only loaded when tool is opened) ─────────────
+const ProEditorTool    = lazy(() => import("@/components/tools/ProEditorTool"));
+const TimelineTool     = lazy(() => import("@/components/tools/TimelineTool"));
+const OverlayStudioTool= lazy(() => import("@/components/tools/OverlayStudioTool"));
+const CleanVideoTool   = lazy(() => import("@/components/tools/CleanVideoTool"));
+const ConvertTool      = lazy(() => import("@/components/tools/ConvertTool"));
+const CompressTool     = lazy(() => import("@/components/tools/CompressTool"));
+const ResizeTool       = lazy(() => import("@/components/tools/ResizeTool"));
+const GifTool          = lazy(() => import("@/components/tools/GifTool"));
+const AudioStudioTool  = lazy(() => import("@/components/tools/AudioStudioTool"));
+const MergeTool        = lazy(() => import("@/components/tools/MergeTool"));
+const SubtitleTool     = lazy(() => import("@/components/tools/SubtitleTool"));
+const ThumbnailTool    = lazy(() => import("@/components/tools/ThumbnailTool"));
+const AutoOptimizeTool = lazy(() => import("@/components/tools/AutoOptimizeTool"));
 
 interface ToolDef {
   id: string;
@@ -41,7 +43,6 @@ interface ToolDef {
   tags: string[];
   gradient: string;
   iconBg: string;
-  component: React.ReactNode;
 }
 
 const TOOL_SECTIONS = [
@@ -50,10 +51,10 @@ const TOOL_SECTIONS = [
     accent: "from-violet-600 to-purple-600",
     cols: "grid-cols-1 sm:grid-cols-2",
     tools: [
-      { id: "proeditor",   icon: "🎬", label: "Pro Editor",     desc: "Filters, color grading, crop & effects",       tags: ["filter","color","crop","edit"],           gradient: "from-violet-500 to-purple-600",  iconBg: "bg-violet-100 dark:bg-violet-900/40",  component: <ProEditorTool /> },
-      { id: "timeline",    icon: "✂️", label: "Timeline",       desc: "Trim, cut, speed control & loop",              tags: ["trim","cut","speed","loop","clip"],       gradient: "from-purple-500 to-indigo-600",  iconBg: "bg-purple-100 dark:bg-purple-900/40",  component: <TimelineTool /> },
-      { id: "overlay",     icon: "🧩", label: "Overlay Studio", desc: "Text, logos, watermarks & layers",             tags: ["text","logo","watermark","overlay"],      gradient: "from-fuchsia-500 to-violet-600", iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40",component: <OverlayStudioTool /> },
-      { id: "clean",       icon: "🧹", label: "Clean Video",    desc: "Remove unwanted text or logo",                 tags: ["remove","clean","logo","delogo"],         gradient: "from-pink-500 to-fuchsia-600",   iconBg: "bg-pink-100 dark:bg-pink-900/40",      component: <CleanVideoTool /> },
+      { id: "proeditor",    icon: "🎬", label: "Pro Editor",     desc: "Filters, color grading, crop & effects",                       tags: ["filter","color","crop","edit"],                    gradient: "from-violet-500 to-purple-600",  iconBg: "bg-violet-100 dark:bg-violet-900/40"  },
+      { id: "timeline",     icon: "✂️", label: "Timeline",       desc: "Trim, cut, speed control & loop",                              tags: ["trim","cut","speed","loop","clip"],                gradient: "from-purple-500 to-indigo-600",  iconBg: "bg-purple-100 dark:bg-purple-900/40"  },
+      { id: "overlay",      icon: "🧩", label: "Overlay Studio", desc: "Text, logos, watermarks & layers",                             tags: ["text","logo","watermark","overlay"],               gradient: "from-fuchsia-500 to-violet-600", iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40"},
+      { id: "clean",        icon: "🧹", label: "Clean Video",    desc: "Remove unwanted text or logo",                                 tags: ["remove","clean","logo","delogo"],                  gradient: "from-pink-500 to-fuchsia-600",   iconBg: "bg-pink-100 dark:bg-pink-900/40"      },
     ] as ToolDef[],
   },
   {
@@ -61,10 +62,10 @@ const TOOL_SECTIONS = [
     accent: "from-blue-600 to-cyan-500",
     cols: "grid-cols-1 sm:grid-cols-2",
     tools: [
-      { id: "convert",      icon: "🔄", label: "Convert",        desc: "MP4, WebM, AVI, MOV, MKV, MP3, WAV",        tags: ["convert","format","mp4","webm","mp3"],    gradient: "from-blue-500 to-cyan-500",    iconBg: "bg-blue-100 dark:bg-blue-900/40",   component: <ConvertTool /> },
-      { id: "compress",     icon: "📦", label: "Compress",       desc: "Reduce file size without losing quality",    tags: ["compress","size","reduce"],              gradient: "from-cyan-500 to-teal-500",    iconBg: "bg-cyan-100 dark:bg-cyan-900/40",   component: <CompressTool /> },
-      { id: "resize",       icon: "📐", label: "Resize",         desc: "Resolution, aspect ratio & letterbox",       tags: ["resize","resolution","aspect","scale"],   gradient: "from-teal-500 to-emerald-500", iconBg: "bg-teal-100 dark:bg-teal-900/40",   component: <ResizeTool /> },
-      { id: "gif",          icon: "🎞", label: "GIF Maker",      desc: "Convert video to animated GIF",              tags: ["gif","animate","convert"],               gradient: "from-sky-500 to-blue-600",     iconBg: "bg-sky-100 dark:bg-sky-900/40",     component: <GifTool /> },
+      { id: "convert",      icon: "🔄", label: "Convert",        desc: "MP4, WebM, AVI, MOV, MKV, MP3, WAV",                          tags: ["convert","format","mp4","webm","mp3"],             gradient: "from-blue-500 to-cyan-500",    iconBg: "bg-blue-100 dark:bg-blue-900/40"   },
+      { id: "compress",     icon: "📦", label: "Compress",       desc: "Reduce file size without losing quality",                      tags: ["compress","size","reduce"],                        gradient: "from-cyan-500 to-teal-500",    iconBg: "bg-cyan-100 dark:bg-cyan-900/40"   },
+      { id: "resize",       icon: "📐", label: "Resize",         desc: "Resolution, aspect ratio & letterbox",                         tags: ["resize","resolution","aspect","scale"],            gradient: "from-teal-500 to-emerald-500", iconBg: "bg-teal-100 dark:bg-teal-900/40"   },
+      { id: "gif",          icon: "🎞", label: "GIF Maker",      desc: "Convert video to animated GIF",                               tags: ["gif","animate","convert"],                         gradient: "from-sky-500 to-blue-600",     iconBg: "bg-sky-100 dark:bg-sky-900/40"     },
     ] as ToolDef[],
   },
   {
@@ -72,7 +73,7 @@ const TOOL_SECTIONS = [
     accent: "from-fuchsia-600 to-pink-500",
     cols: "grid-cols-1",
     tools: [
-      { id: "audiostudio", icon: "🎵", label: "Audio Studio", desc: "Mute, extract, volume boost, fade in/out & convert audio", tags: ["audio","mute","extract","volume","fade","convert"], gradient: "from-fuchsia-500 to-pink-500", iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40", component: <AudioStudioTool /> },
+      { id: "audiostudio",  icon: "🎵", label: "Audio Studio",   desc: "Mute, extract, volume boost, fade in/out & convert audio",     tags: ["audio","mute","extract","volume","fade","convert"],gradient: "from-fuchsia-500 to-pink-500", iconBg: "bg-fuchsia-100 dark:bg-fuchsia-900/40"},
     ] as ToolDef[],
   },
   {
@@ -80,9 +81,9 @@ const TOOL_SECTIONS = [
     accent: "from-orange-500 to-amber-500",
     cols: "grid-cols-1 sm:grid-cols-3",
     tools: [
-      { id: "merge",        icon: "🔗", label: "Merge",          desc: "Combine multiple videos into one",    tags: ["merge","combine","join"],                gradient: "from-orange-500 to-amber-500",  iconBg: "bg-orange-100 dark:bg-orange-900/40", component: <MergeTool /> },
-      { id: "subtitle",     icon: "💬", label: "Subtitle",       desc: "Burn SRT captions into video",        tags: ["subtitle","caption","srt","text"],       gradient: "from-amber-500 to-yellow-500",  iconBg: "bg-amber-100 dark:bg-amber-900/40",  component: <SubtitleTool /> },
-      { id: "thumbnail",    icon: "🖼", label: "Thumbnail",      desc: "Extract frame & add title text",      tags: ["thumbnail","frame","image","jpg"],       gradient: "from-yellow-500 to-orange-500", iconBg: "bg-yellow-100 dark:bg-yellow-900/40", component: <ThumbnailTool /> },
+      { id: "merge",        icon: "🔗", label: "Merge",          desc: "Combine multiple videos into one",                             tags: ["merge","combine","join"],                          gradient: "from-orange-500 to-amber-500",  iconBg: "bg-orange-100 dark:bg-orange-900/40"},
+      { id: "subtitle",     icon: "💬", label: "Subtitle",       desc: "Burn SRT captions into video",                                tags: ["subtitle","caption","srt","text"],                 gradient: "from-amber-500 to-yellow-500",  iconBg: "bg-amber-100 dark:bg-amber-900/40" },
+      { id: "thumbnail",    icon: "🖼", label: "Thumbnail",      desc: "Extract frame & add title text",                              tags: ["thumbnail","frame","image","jpg"],                 gradient: "from-yellow-500 to-orange-500", iconBg: "bg-yellow-100 dark:bg-yellow-900/40"},
     ] as ToolDef[],
   },
   {
@@ -90,7 +91,7 @@ const TOOL_SECTIONS = [
     accent: "from-violet-600 to-fuchsia-600",
     cols: "grid-cols-1",
     tools: [
-      { id: "autooptimize", icon: "⚡", label: "Auto Optimize",  desc: "1-click: detect & apply best format, compression & resolution", tags: ["auto","optimize","smart","1click"], gradient: "from-violet-600 to-fuchsia-600", iconBg: "bg-violet-100 dark:bg-violet-900/40", component: <AutoOptimizeTool /> },
+      { id: "autooptimize", icon: "⚡", label: "Auto Optimize",  desc: "1-click: detect & apply best format, compression & resolution",tags: ["auto","optimize","smart","1click"],                gradient: "from-violet-600 to-fuchsia-600",iconBg: "bg-violet-100 dark:bg-violet-900/40"},
     ] as ToolDef[],
   },
 ];
@@ -280,11 +281,25 @@ const Index = () => {
 
   const favTools = ALL_TOOLS.filter(t => favs.has(t.id));
 
-  // Render the active tool component — inject preset for ConvertTool
+  // Render the active tool component — lazy loaded by ID
   const renderActiveTool = () => {
     if (!activeDef) return null;
-    if (activeDef.id === "convert") return <ConvertTool initialPreset={activePreset} />;
-    return activeDef.component;
+    switch (activeDef.id) {
+      case "proeditor":    return <ProEditorTool />;
+      case "timeline":     return <TimelineTool />;
+      case "overlay":      return <OverlayStudioTool />;
+      case "clean":        return <CleanVideoTool />;
+      case "convert":      return <ConvertTool initialPreset={activePreset} />;
+      case "compress":     return <CompressTool />;
+      case "resize":       return <ResizeTool />;
+      case "gif":          return <GifTool />;
+      case "audiostudio":  return <AudioStudioTool />;
+      case "merge":        return <MergeTool />;
+      case "subtitle":     return <SubtitleTool />;
+      case "thumbnail":    return <ThumbnailTool />;
+      case "autooptimize": return <AutoOptimizeTool />;
+      default:             return null;
+    }
   };
 
   // Build session timeline steps
@@ -404,7 +419,7 @@ const Index = () => {
             <DropZone
               variant="hero"
               onFile={(f) => {
-                sessionStore.set(f);
+                probeAndStore(f); // probe + cache metadata immediately
                 (window as any).__quickDropFile = f;
                 openTool("convert");
               }}
@@ -542,7 +557,17 @@ const Index = () => {
                 <div className="p-4 sm:p-6">
                   <AnimatePresence mode="wait">
                     <motion.div key={`${activeTool}-${activePreset}`} variants={tabPanel} initial="hidden" animate="show" exit="exit">
-                      {renderActiveTool()}
+                      <Suspense fallback={
+                        <div className="flex items-center justify-center py-12 gap-3 text-gray-400 dark:text-gray-500">
+                          <svg className="w-5 h-5 animate-spin text-violet-500" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-20" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-90" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                          </svg>
+                          <span className="text-sm font-medium">Loading tool…</span>
+                        </div>
+                      }>
+                        {renderActiveTool()}
+                      </Suspense>
                     </motion.div>
                   </AnimatePresence>
                 </div>

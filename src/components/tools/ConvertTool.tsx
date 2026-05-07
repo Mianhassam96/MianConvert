@@ -9,6 +9,7 @@ import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } fr
 import { detectDevice, recommendedFormat, recommendedResolution } from "@/lib/device";
 import { CONVERT_PRESETS } from "@/lib/presets";
 import { sessionStore } from "@/lib/session-store";
+import { buildFFmpegArgs, getResolutionFilter, revokeUrls, safeDelete, type RenderMode } from "@/lib/ffmpeg-pipeline";
 import DropZone from "@/components/DropZone";
 import VideoPreview from "@/components/VideoPreview";
 import TrimControl from "@/components/TrimControl";
@@ -26,10 +27,6 @@ type Quality = "high" | "medium" | "low";
 type Rotate = "none" | "90" | "180" | "270" | "fliph" | "flipv";
 type Mode = "quick" | "advanced";
 
-const RES: Record<Res, string> = { "1080p": "1920:1080", "720p": "1280:720", "480p": "854:480", original: "" };
-const CRF: Record<Quality, string> = { high: "18", medium: "28", low: "38" };
-
-// Friendly labels for non-tech users
 const QUALITY_LABELS: Record<Quality, string> = {
   high: "Best quality (larger file)",
   medium: "Balanced (recommended)",
@@ -179,40 +176,52 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
 
     const extMap: Record<Fmt, string> = { mp4:"mp4", webm:"webm", mp3:"mp3", wav:"wav", avi:"avi", mov:"mov", mkv:"mkv", muted:"mp4" };
     const mimeMap: Record<string, string> = { mp4:"video/mp4", webm:"video/webm", mp3:"audio/mpeg", wav:"audio/wav", avi:"video/x-msvideo", mov:"video/quicktime", mkv:"video/x-matroska" };
-    const ext = extMap[fmt];
+    const outExt = extMap[fmt];
     const inp = `in.${file.name.split(".").pop()}`;
-    const out = `out.${ext}`;
+    const out = `out.${outExt}`;
 
     const handler = ({ progress: p }: { progress: number }) => setProgress(Math.round(p * 100));
     ff.on("progress", handler);
     try {
       await ff.writeFile(inp, await fetchFile(file));
-      const args = ["-i", inp];
-      if (trimEnabled) args.push("-ss", trimStart.toFixed(2), "-to", trimEnd.toFixed(2));
-      if (isAudio(fmt)) {
-        args.push("-vn");
-        if (fmt === "mp3") args.push("-acodec", "libmp3lame", "-q:a", "2");
-        else args.push("-acodec", "pcm_s16le");
-      } else {
-        if (fmt === "muted") args.push("-an");
-        const vFilters: string[] = [];
-        if (res !== "original") vFilters.push(`scale=${RES[res]}:force_original_aspect_ratio=decrease`);
-        const rotFilter = getRotateFilter(rotate);
-        if (rotFilter) vFilters.push(rotFilter);
-        if (vFilters.length) args.push("-vf", vFilters.join(","));
-        args.push("-crf", CRF[quality], "-preset", "fast");
-        if (fmt === "webm") args.push("-c:v", "libvpx-vp9", "-c:a", "libopus");
-        else if (fmt === "avi") args.push("-c:v", "libxvid", "-c:a", "mp3");
-        else args.push("-c:v", "libx264", "-c:a", fmt === "muted" ? "copy" : "aac");
+
+      // Build video filters
+      const vFilters: string[] = [];
+      if (res !== "original") {
+        const scaleF = getResolutionFilter(res, quality === "high" ? "quality" : quality === "low" ? "instant" : "balanced");
+        if (scaleF) vFilters.push(scaleF);
       }
-      args.push(out);
+      const rotFilter = getRotateFilter(rotate);
+      if (rotFilter) vFilters.push(rotFilter);
+
+      // Map quality to render mode
+      const modeMap: Record<Quality, RenderMode> = { high: "quality", medium: "balanced", low: "instant" };
+
+      const { args, fastPath } = buildFFmpegArgs({
+        inputName: inp,
+        outputName: out,
+        trimStart: trimEnabled ? trimStart : undefined,
+        trimEnd: trimEnabled ? trimEnd : undefined,
+        vFilters,
+        muteAudio: fmt === "muted",
+        outputFormat: isAudio(fmt) ? (fmt as "mp3" | "wav") : (outExt as "mp4" | "webm"),
+        mode: modeMap[quality],
+        forceEncode: fmt === "webm" || isAudio(fmt),
+      });
+
+      // Show fast path indicator
+      if (fastPath) {
+        toast({ title: "⚡ Using fast stream copy" });
+      }
+
       await ff.exec(args);
-      await ff.deleteFile(inp);
-      const blob = await readOutputBlob(ff, out, mimeMap[ext] || "video/mp4");
+      await safeDelete(ff, inp);
+
+      const blob = await readOutputBlob(ff, out, mimeMap[outExt] || "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");
       setDone(true);
-      setResult({ url, filename: `${base}-mianconvert.${ext}`, size: formatBytes(blob.size), rawSize: blob.size });
+      setResult({ url, filename: `${base}-mianconvert.${outExt}`, size: formatBytes(blob.size), rawSize: blob.size });
       sessionStore.markDone("convert");
       toast({ title: "✓ Done!" });
     } catch (e) {

@@ -7,6 +7,7 @@ import { fetchFile } from "@ffmpeg/util";
 import { formatBytes, readOutputBlob, validateVideoFile, getFileSizeWarning } from "@/lib/ffmpeg-run";
 import { COMPRESS_PRESETS } from "@/lib/presets";
 import { sessionStore } from "@/lib/session-store";
+import { buildFFmpegArgs, getResolutionFilter, safeDelete } from "@/lib/ffmpeg-pipeline";
 import DropZone from "@/components/DropZone";
 import VideoPreview from "@/components/VideoPreview";
 import ResultCard, { buildNextActions } from "@/components/ResultCard";
@@ -21,10 +22,6 @@ type Preset = "ultrafast" | "fast" | "medium" | "slow";
 type Crf = "18" | "23" | "28" | "33" | "38";
 type Res = "original" | "1080p" | "720p" | "480p" | "360p";
 type Mode = "quick" | "advanced";
-
-const RES_MAP: Record<Res, string> = {
-  original: "", "1080p": "1920:1080", "720p": "1280:720", "480p": "854:480", "360p": "640:360",
-};
 
 const QUALITY_LABELS: Record<Crf, string> = {
   "18": "Best quality — large file",
@@ -100,11 +97,25 @@ const CompressTool = () => {
     try {
       const ext = file.name.split(".").pop() || "mp4";
       await ff.writeFile(`input.${ext}`, await fetchFile(file));
-      const args = ["-i", `input.${ext}`];
-      if (res !== "original") args.push("-vf", `scale=${RES_MAP[res]}:force_original_aspect_ratio=decrease`);
-      args.push("-c:v", "libx264", "-crf", crf, "-preset", preset, "-c:a", "aac", "-b:a", "128k", "output.mp4");
+
+      const vFilters: string[] = [];
+      if (res !== "original") {
+        const scaleF = getResolutionFilter(res, "balanced");
+        if (scaleF) vFilters.push(scaleF);
+      }
+
+      const { args } = buildFFmpegArgs({
+        inputName: `input.${ext}`,
+        outputName: "output.mp4",
+        vFilters,
+        outputFormat: "mp4",
+        crfOverride: crf,
+        mode: preset === "ultrafast" ? "instant" : preset === "slow" ? "quality" : "balanced",
+        forceEncode: true,
+      });
+
       await ff.exec(args);
-      await ff.deleteFile(`input.${ext}`);
+      await safeDelete(ff, `input.${ext}`);
       const blob = await readOutputBlob(ff, "output.mp4", "video/mp4");
       const url = URL.createObjectURL(blob);
       const base = file.name.replace(/\.[^.]+$/, "");

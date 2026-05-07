@@ -16,6 +16,7 @@ import ErrorRecovery from "@/components/ErrorRecovery";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { sessionStore } from "@/lib/session-store";
+import { cleanupFiles, safeDelete } from "@/lib/ffmpeg-pipeline";
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2, 4];
 
@@ -140,11 +141,11 @@ const TimelineTool = () => {
         const concatList = concatFiles.map(n => `file '${n}'`).join("\n");
         await ff.writeFile("concat.txt", new TextEncoder().encode(concatList));
         await ff.exec(["-f", "concat", "-safe", "0", "-i", "concat.txt", "-c", "copy", finalFile]);
-        await ff.deleteFile("concat.txt");
-        for (const f of segFiles) { try { await ff.deleteFile(f); } catch {} }
+        await safeDelete(ff, "concat.txt");
+        await cleanupFiles(ff, segFiles);
       }
 
-      await ff.deleteFile(`input.${vExt}`);
+      await safeDelete(ff, `input.${vExt}`);
       const blob = await readOutputBlob(ff, finalFile, "video/mp4");
       const url = URL.createObjectURL(blob);
       setDone(true);

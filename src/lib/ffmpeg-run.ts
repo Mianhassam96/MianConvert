@@ -1,5 +1,7 @@
 import { FFmpeg } from "@ffmpeg/ffmpeg";
 import { fetchFile } from "@ffmpeg/util";
+import { probeFile } from "@/lib/media-probe";
+import { sessionStore } from "@/lib/session-store";
 
 export const formatBytes = (b: number) =>
   b < 1024 * 1024 ? `${(b / 1024).toFixed(1)} KB` : `${(b / (1024 * 1024)).toFixed(2)} MB`;
@@ -44,4 +46,17 @@ export const likelyHasAudio = (file: File): boolean => {
   const noAudioExts = [".gif"];
   const name = file.name.toLowerCase();
   return !noAudioExts.some(e => name.endsWith(e));
+};
+
+/**
+ * Probe file and update session store with full metadata.
+ * Call this once on upload — all tools reuse the cached result.
+ */
+export const probeAndStore = async (file: File): Promise<void> => {
+  try {
+    const info = await probeFile(file);
+    sessionStore.set(file, info.duration, info.width, info.height);
+  } catch {
+    sessionStore.set(file);
+  }
 };

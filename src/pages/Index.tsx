@@ -4,17 +4,16 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import DropZone from "@/components/DropZone";
 import UseCaseBar from "@/components/UseCaseBar";
-import SmartSuggestions from "@/components/SmartSuggestions";
 import LiveStats from "@/components/LiveStats";
 import SessionTimeline from "@/components/SessionTimeline";
-import PreviewIntelligence from "@/components/PreviewIntelligence";
 import ActivityFeed from "@/components/ActivityFeed";
 import WorkflowTemplates from "@/components/WorkflowTemplates";
 import RecentWorkflows from "@/components/RecentWorkflows";
 import WorkspaceSidebar from "@/components/WorkspaceSidebar";
 import RenderQueuePanel from "@/components/RenderQueuePanel";
 import CreatorPacks from "@/components/CreatorPacks";
-import { Link } from "react-router-dom";
+import InstantAnalysis from "@/components/InstantAnalysis";
+import CreatorStats from "@/components/CreatorStats";
 import { fadeUp, stagger, scaleIn, tabPanel } from "@/lib/motion";
 import { Shield, Zap, Search, Star, X, ChevronRight, Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -350,55 +349,45 @@ const Index = () => {
             <motion.div variants={fadeUp} className="flex justify-center">
               <span className="inline-flex items-center gap-2 glass px-4 py-1.5 rounded-full text-xs sm:text-sm font-semibold text-violet-700 dark:text-violet-300 shadow-sm shadow-violet-500/10">
                 <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 4 }} className="text-base">⚡</motion.span>
-                Powered by FFmpeg WebAssembly — 100% in your browser
+                FFmpeg WebAssembly — 100% in your browser, zero uploads
               </span>
             </motion.div>
 
             <motion.div variants={fadeUp} className="space-y-2">
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black text-gray-900 dark:text-white leading-[1.1] tracking-tight">
-                The fastest way to prepare
+                Prepare videos for TikTok,
               </h1>
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black leading-[1.1] tracking-tight">
                 <span className="bg-gradient-to-r from-violet-600 via-purple-500 to-fuchsia-500 bg-clip-text text-transparent text-glow">
-                  videos for anywhere
+                  YouTube & Reels — instantly
                 </span>
               </h1>
             </motion.div>
 
-            <motion.p variants={fadeUp} className="text-gray-500 dark:text-gray-400 max-w-xl mx-auto text-sm sm:text-base leading-relaxed px-2">
-              Your browser-based video workspace. No upload. No signup. No limits. — 13 professional tools that run entirely on your device.
+            <motion.p variants={fadeUp} className="text-gray-500 dark:text-gray-400 max-w-lg mx-auto text-sm sm:text-base leading-relaxed px-2">
+              No upload. No watermark. No waiting. Your browser-based creator workspace.
             </motion.p>
 
-            {/* Trust line */}
+            {/* Trust pills — cleaner, fewer */}
             <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-2">
               {TRUST_ITEMS.map(f => (
-                <span key={f.text} className="inline-flex items-center gap-1.5 bg-white dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full shadow-sm">
+                <span key={f.text} className="inline-flex items-center gap-1.5 bg-white/70 dark:bg-gray-800/60 border border-gray-200/80 dark:border-gray-700/60 text-gray-600 dark:text-gray-300 text-xs font-medium px-3 py-1.5 rounded-full">
                   <span className="text-violet-500">{f.icon}</span>{f.text}
                 </span>
               ))}
             </motion.div>
 
-            {/* Stats */}
-            <motion.div variants={fadeUp} className="grid grid-cols-4 gap-2 sm:gap-4 max-w-sm sm:max-w-lg mx-auto">
+            {/* Stats — compact */}
+            <motion.div variants={fadeUp} className="grid grid-cols-4 gap-2 sm:gap-3 max-w-xs sm:max-w-md mx-auto">
               {STATS.map((s, i) => (
                 <motion.div key={s.label}
-                  initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 + i * 0.08 }}
-                  whileHover={{ y: -3, scale: 1.04 }}
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.07 }}
                   className="stat-card">
-                  <p className="text-lg sm:text-2xl font-black bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent leading-none mb-0.5">{s.value}</p>
-                  <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
+                  <p className="text-base sm:text-xl font-black bg-gradient-to-r from-violet-600 to-fuchsia-500 bg-clip-text text-transparent leading-none mb-0.5">{s.value}</p>
+                  <p className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">{s.label}</p>
                 </motion.div>
               ))}
-            </motion.div>
-
-            <motion.div variants={fadeUp} className="flex items-center justify-center gap-4 text-sm">
-              <Link to="/about" className="text-violet-600 dark:text-violet-400 hover:text-violet-700 dark:hover:text-violet-300 font-semibold transition-colors flex items-center gap-1">
-                Learn more
-                <motion.span animate={{ x: [0, 3, 0] }} transition={{ duration: 1.5, repeat: Infinity }}>→</motion.span>
-              </Link>
-              <span className="text-gray-300 dark:text-gray-700">|</span>
-              <Link to="/contact" className="text-gray-500 dark:text-gray-400 hover:text-violet-600 dark:hover:text-violet-400 transition-colors">Contact</Link>
             </motion.div>
 
             {/* Live Stats */}
@@ -407,25 +396,44 @@ const Index = () => {
             </motion.div>
           </motion.section>
 
-          {/* ── AUTO OPTIMIZE HERO BUTTON ── */}
+          {/* ── HERO CTA — ONE BIG BUTTON (Phase 3+10) ── */}
           <motion.div
             initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.25, duration: 0.4 }}
-            className="flex flex-col sm:flex-row items-center gap-3"
+            transition={{ delay: 0.2, duration: 0.4 }}
+            className="space-y-3"
           >
+            {/* Primary CTA */}
             <motion.button
-              whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }}
+              whileHover={{ scale: 1.02, y: -2 }} whileTap={{ scale: 0.97 }}
               onClick={() => openTool("autooptimize")}
-              className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-2xl font-bold text-white text-sm shadow-xl shadow-violet-500/30 transition-all"
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-2xl font-black text-white text-base sm:text-lg shadow-2xl shadow-violet-500/30 transition-all"
               style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 50%, #d946ef 100%)", backgroundSize: "200% 200%", animation: "gradientShift 4s ease infinite" }}
             >
-              <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }}>⚡</motion.span>
-              Auto Optimize (1 Click)
-              <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-semibold">NEW</span>
+              <motion.span animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 2, repeat: Infinity, repeatDelay: 3 }} className="text-xl">⚡</motion.span>
+              Auto Optimize My Video
+              <span className="text-xs bg-white/20 px-2 py-1 rounded-full font-bold">1 CLICK</span>
             </motion.button>
-            <p className="text-xs text-gray-400 dark:text-gray-500 text-center sm:text-left">
-              Detects format, size & resolution — applies best settings automatically
-            </p>
+
+            {/* Secondary CTAs — outcome-first */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { icon: "📱", label: "Make TikTok-ready",    toolId: "convert",    preset: "tiktok" },
+                { icon: "✨", label: "Add viral captions",   toolId: "aicaption",  preset: undefined },
+                { icon: "📦", label: "Reduce for WhatsApp",  toolId: "compress",   preset: undefined },
+                { icon: "🎧", label: "Extract podcast audio",toolId: "audiostudio",preset: undefined },
+              ].map((cta, i) => (
+                <motion.button key={cta.toolId + i}
+                  initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 + i * 0.05 }}
+                  whileHover={{ y: -2, scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                  onClick={() => openTool(cta.toolId, cta.preset)}
+                  className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 bg-white/70 dark:bg-gray-900/50 hover:border-violet-300 dark:hover:border-violet-700 hover:bg-violet-50 dark:hover:bg-violet-950/20 transition-all text-left group"
+                >
+                  <span className="text-base shrink-0">{cta.icon}</span>
+                  <span className="text-xs font-semibold text-gray-700 dark:text-gray-200 leading-tight">{cta.label}</span>
+                </motion.button>
+              ))}
+            </div>
           </motion.div>
 
           {/* ── HERO DROP ZONE ── */}
@@ -441,26 +449,19 @@ const Index = () => {
             />
           </motion.div>
 
-          {/* ── SMART SUGGESTIONS (after file uploaded) ── */}
+          {/* ── INSTANT ANALYSIS + SMART SUGGESTIONS (after file uploaded) ── */}
           <AnimatePresence>
             {session.file && (
               <motion.div
                 initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }} transition={{ duration: 0.3 }}
                 className="space-y-3">
-                {/* Preview Intelligence */}
-                <PreviewIntelligence
+                {/* Instant Analysis — WOW moment */}
+                <InstantAnalysis
                   file={session.file}
                   duration={session.duration}
                   width={session.width}
                   height={session.height}
-                />
-                <SmartSuggestions
-                  file={session.file}
-                  duration={session.duration}
-                  width={session.width}
-                  height={session.height}
-                  suggestions={session.suggestions}
                   onOpen={openTool}
                 />
                 {/* Session Timeline */}
@@ -486,6 +487,45 @@ const Index = () => {
 
           {/* ── ACTIVITY FEED + TRENDING ── */}
           <ActivityFeed />
+
+          {/* ── AI CAPTIONS HERO (Phase 6 — viral framing) ── */}
+          <motion.div
+            initial={{ opacity: 0, y: 16 }} whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }} transition={{ duration: 0.4 }}
+            className="relative overflow-hidden rounded-2xl p-6 sm:p-8 text-white space-y-4"
+            style={{ background: "linear-gradient(135deg, #7c3aed 0%, #a855f7 40%, #d946ef 80%, #ec4899 100%)" }}
+          >
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.06)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.06)_1px,transparent_1px)] bg-[size:30px_30px] pointer-events-none" />
+            <div className="relative z-10 flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <div className="flex-1 space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">✨</span>
+                  <span className="text-xs font-bold bg-white/20 px-2 py-0.5 rounded-full">NEW FEATURE</span>
+                </div>
+                <h2 className="text-xl sm:text-2xl font-black leading-tight">
+                  Viral Captions in One Click
+                </h2>
+                <p className="text-white/80 text-sm leading-relaxed">
+                  TikTok-style animated subtitles. Auto-transcribed from your video. 6 creator styles — TikTok Bold, Reel Glow, Gaming Neon & more.
+                </p>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {["TikTok Bold", "Reel Glow", "YouTube Clean", "Gaming Neon"].map(s => (
+                    <span key={s} className="text-[11px] bg-white/20 px-2.5 py-1 rounded-full font-semibold">{s}</span>
+                  ))}
+                </div>
+              </div>
+              <motion.button
+                whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.97 }}
+                onClick={() => openTool("aicaption")}
+                className="shrink-0 flex items-center gap-2 bg-white text-violet-700 font-black px-5 py-3 rounded-xl shadow-lg text-sm hover:shadow-xl transition-all"
+              >
+                ✨ Try AI Captions
+              </motion.button>
+            </div>
+          </motion.div>
+
+          {/* ── CREATOR STATS (Phase 8 — alive product) ── */}
+          <CreatorStats />
 
           {/* ── SEARCH BAR ── */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, duration: 0.4 }} className="relative">

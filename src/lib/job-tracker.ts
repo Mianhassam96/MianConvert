@@ -55,6 +55,16 @@ export const finishJob = (jobId: string, result: JobResult, toolId: string, tool
     toolLabel,
     url: result.url,
   });
+  // Increment creator stats counter
+  try {
+    const KEY_TOTAL = "mc_total_processed";
+    const KEY_WEEK  = "mc_week_processed";
+    localStorage.setItem(KEY_TOTAL, String(parseInt(localStorage.getItem(KEY_TOTAL) ?? "0") + 1));
+    localStorage.setItem(KEY_WEEK,  String(parseInt(localStorage.getItem(KEY_WEEK)  ?? "0") + 1));
+    if (!localStorage.getItem("mc_week_start")) {
+      localStorage.setItem("mc_week_start", String(Date.now()));
+    }
+  } catch {}
 };
 
 /** Mark job as failed. */

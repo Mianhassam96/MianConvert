@@ -50,7 +50,7 @@ const CompressTool = () => {
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ url: string; filename: string; size: string; rawSize: number } | null>(null);
+  const [result, setResult] = useState<{ url: string; filename: string; size: string; rawSize: number; startTime: number } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<string>("balanced");
   const [mode, setMode] = useState<Mode>("quick");
@@ -92,6 +92,7 @@ const CompressTool = () => {
     if (!file) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…", description: "First run takes ~5s." }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
+    const processStart = Date.now();
     const ff = ffmpeg.current!;
     const jobId = startJob({ toolId: "compress", toolLabel: "Compress", icon: "📦", fileName: file.name });
     const handler = ({ progress: p }: { progress: number }) => {
@@ -129,7 +130,7 @@ const CompressTool = () => {
       const filename = `${base}-compressed.mp4`;
       const sizeStr = `${formatBytes(blob.size)}${saved}`;
       setDone(true);
-      setResult({ url, filename, size: sizeStr, rawSize: blob.size });
+      setResult({ url, filename, size: sizeStr, rawSize: blob.size, startTime: processStart });
       sessionStore.markDone("compress");
       finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "compress", "Compress");
       toast({ title: "✓ Compressed!" });
@@ -310,6 +311,8 @@ const CompressTool = () => {
             </div>
           )}
           <ResultCard url={result.url} filename={result.filename} size={result.size}
+            startTime={result.startTime}
+            originalBytes={file?.size}
             nextActions={buildNextActions(result.filename, result.rawSize, "compress")}
             onOpenTool={(toolId, preset) => {
               window.dispatchEvent(new CustomEvent("openTool", { detail: { toolId, preset } }));

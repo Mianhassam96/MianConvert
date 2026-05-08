@@ -2,6 +2,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Download, RefreshCw, Share2, CheckCheck, FileCheck2, ChevronRight } from "lucide-react";
 import { useState } from "react";
 import AnimatedButton from "@/components/ui/AnimatedButton";
+import TimeSaved from "@/components/TimeSaved";
 
 interface NextAction {
   icon: string;
@@ -17,9 +18,12 @@ interface ResultCardProps {
   onAgain: () => void;
   onReset: () => void;
   preview?: string;
-  /** Next actions to show after result — drives tool chaining */
   nextActions?: NextAction[];
   onOpenTool?: (toolId: string, preset?: string) => void;
+  /** When processing started — for time saved display */
+  startTime?: number;
+  /** Original file size in bytes — for savings display */
+  originalBytes?: number;
 }
 
 /** Build context-aware next actions based on filename/size */
@@ -53,6 +57,7 @@ export const buildNextActions = (
 
 const ResultCard = ({
   url, filename, size, onAgain, onReset, preview, nextActions, onOpenTool,
+  startTime, originalBytes,
 }: ResultCardProps) => {
   const [shared, setShared] = useState(false);
 
@@ -116,6 +121,15 @@ const ResultCard = ({
           <motion.img src={preview} alt="preview"
             initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
             className="w-full rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm" />
+        )}
+
+        {/* Time saved psychology */}
+        {startTime && (
+          <TimeSaved
+            startTime={startTime}
+            savedBytes={originalBytes && originalBytes > 0 ? originalBytes - (size.includes("MB") ? parseFloat(size) * 1024 * 1024 : 0) : undefined}
+            originalBytes={originalBytes}
+          />
         )}
 
         {/* File row */}

@@ -89,7 +89,7 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<{ url: string; filename: string; size: string; rawSize: number } | null>(null);
+  const [result, setResult] = useState<{ url: string; filename: string; size: string; rawSize: number; startTime: number } | null>(null);
   const [warning, setWarning] = useState<string | null>(null);
   const [autoDetectMsg, setAutoDetectMsg] = useState<string | null>(null);
   const [activePreset, setActivePreset] = useState<string>(initialPreset ?? "original");
@@ -173,6 +173,7 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
     if (!file) return;
     if (!loaded) { toast({ title: "Loading FFmpeg…", description: "First run takes ~5s." }); await load(); }
     setProcessing(true); setProgress(0); setResult(null); setDone(false);
+    const processStart = Date.now();
     const ff = ffmpeg.current!;
 
     const extMap: Record<Fmt, string> = { mp4:"mp4", webm:"webm", mp3:"mp3", wav:"wav", avi:"avi", mov:"mov", mkv:"mkv", muted:"mp4" };
@@ -229,7 +230,7 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
       const filename = `${base}-mianconvert.${outExt}`;
       const sizeStr = formatBytes(blob.size);
       setDone(true);
-      setResult({ url, filename, size: sizeStr, rawSize: blob.size });
+      setResult({ url, filename, size: sizeStr, rawSize: blob.size, startTime: processStart });
       sessionStore.markDone("convert");
       finishJob(jobId, { url, name: filename, size: sizeStr, rawSize: blob.size }, "convert", "Convert");
       toast({ title: "✓ Done!" });
@@ -433,6 +434,8 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
 
       {result && (
         <ResultCard url={result.url} filename={result.filename} size={result.size}
+          startTime={result.startTime}
+          originalBytes={file?.size}
           nextActions={buildNextActions(result.filename, result.rawSize, "convert")}
           onOpenTool={(toolId, preset) => {
             window.dispatchEvent(new CustomEvent("openTool", { detail: { toolId, preset } }));

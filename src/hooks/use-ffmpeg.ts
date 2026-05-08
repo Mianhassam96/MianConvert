@@ -46,7 +46,8 @@ export const useFFmpeg = () => {
     loadPromise = (async () => {
       try {
         const ffmpeg = new FFmpeg();
-        const baseURL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm";
+        // jsDelivr CDN — faster global delivery than unpkg
+        const baseURL = "https://cdn.jsdelivr.net/npm/@ffmpeg/core@0.12.6/dist/esm";
 
         globalProgress = 20;
         notifyAll();

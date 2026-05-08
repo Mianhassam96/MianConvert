@@ -140,15 +140,23 @@ export const buildFFmpegArgs = (opts: PipelineOptions): { args: string[]; fastPa
         args.push("-c:a", "aac", "-b:a", "128k");
       }
 
-      // Avoid odd dimensions (required by libx264)
+      // Avoid odd dimensions — only add if no scale filter already present
       if (!allVf.some(f => f.includes("scale"))) {
-        args.push("-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2");
+        // Append to existing -vf or add new one
+        const vfIdx = args.indexOf("-vf");
+        if (vfIdx !== -1) {
+          args[vfIdx + 1] = args[vfIdx + 1] + ",scale=trunc(iw/2)*2:trunc(ih/2)*2";
+        } else {
+          args.push("-vf", "scale=trunc(iw/2)*2:trunc(ih/2)*2");
+        }
       }
     }
   }
 
-  // Avoid re-encoding warnings
-  args.push("-avoid_negative_ts", "make_zero");
+  // Avoid re-encoding warnings — only needed for re-encode path
+  if (!fast) {
+    args.push("-avoid_negative_ts", "make_zero");
+  }
   args.push(outputName);
 
   return { args, fastPath: fast };

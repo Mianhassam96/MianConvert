@@ -13,15 +13,20 @@ export const writeInputFile = async (ff: FFmpeg, file: File, name: string) => {
 export const readOutputBlob = async (ff: FFmpeg, name: string, mime: string): Promise<Blob> => {
   const data = await ff.readFile(name);
   await ff.deleteFile(name);
-  const buffer = data instanceof Uint8Array ? data.buffer.slice(0) as ArrayBuffer : (data as unknown as ArrayBuffer);
-  return new Blob([buffer], { type: mime });
+  // Use the Uint8Array directly — no ArrayBuffer copy needed
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data as ArrayBuffer);
+  return new Blob([bytes], { type: mime });
 };
 
 export const triggerDownload = (url: string, filename: string) => {
   const a = document.createElement("a");
   a.href = url;
   a.download = filename;
+  a.style.display = "none";
+  document.body.appendChild(a);
   a.click();
+  // Small delay before removing to ensure download starts
+  setTimeout(() => document.body.removeChild(a), 100);
 };
 
 /** Validate file before processing */

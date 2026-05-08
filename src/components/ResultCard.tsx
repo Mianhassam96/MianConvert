@@ -58,7 +58,12 @@ const ResultCard = ({
 
   const download = () => {
     const a = document.createElement("a");
-    a.href = url; a.download = filename; a.click();
+    a.href = url;
+    a.download = filename;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => document.body.removeChild(a), 100);
   };
 
   const share = async () => {

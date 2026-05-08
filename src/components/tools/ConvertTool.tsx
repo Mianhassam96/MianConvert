@@ -189,7 +189,6 @@ const ConvertTool = ({ initialPreset }: ConvertToolProps) => {
     };
     ff.on("progress", handler);
     try {
-    const jobId = startJob({ toolId: "convert", toolLabel: "Convert", icon: "🔄", fileName: file.name });
       await ff.writeFile(inp, await fetchFile(file));
 
       // Build video filters

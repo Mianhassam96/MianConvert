@@ -24,7 +24,7 @@
 
 * Resize videos for social media (1:1, 9:16, 16:9)
 * Compress videos efficiently while maintaining quality
-* Export custom resolutions and bitrates
+* Export custom resolutions and bitrates 
 
 ### 🎞 GIF & Thumbnail Tools
 

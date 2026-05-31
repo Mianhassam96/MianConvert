@@ -99,7 +99,7 @@ MianConvert combines **conversion + editing + effects + styling** in a single to
 * UI Animations: Framer Motion
 * State Management: Zustand / Redux (optional)
 
----
+--- 
 
 ## 📄 License
  

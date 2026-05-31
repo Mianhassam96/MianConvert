@@ -18,7 +18,7 @@
 * **Pro Editor:** Apply filters, effects, color grading, crop, and motion effects
 * **Timeline Tool:** Trim, cut, split, change speed, loop, repeat
 * **Overlay Studio:** Add text, logos, or watermarks with multiple layers and animations
-* **Clean Video:** Remove unwanted text or logos from videos
+* **Clean Video:** Remove unwanted text or logos from videos 
 
 ### 📐 Resize & Optimization
 

@@ -56,7 +56,7 @@
 ## 🖥️ UI Highlights
 
 * Modern, clean, and intuitive interface
-* Drag & drop video upload
+* Drag & drop video upload 
 * Real-time previews of edits and effects
 * One-click export
 * Dark / Light mode support
